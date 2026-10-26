@@ -196,6 +196,22 @@ input::placeholder,textarea::placeholder{color:var(--pencil)}
   .flash{padding:0 18px 22px}
   .flash .q{font-size:18px}
 }
+/* 문제 이미지 */
+.imgs{display:grid;gap:8px;justify-items:start}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px}
+.thumbs:empty{display:none}
+.thumb{position:relative}
+.thumb img{display:block;width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--rule-strong);background:var(--raised)}
+.thumb button{position:absolute;top:2px;right:2px;min-height:24px;padding:0 7px;background:var(--paper)}
+.imgtitle{all:unset;cursor:pointer;border-radius:4px}
+.imgtitle:hover{opacity:.7}
+.imgtitle:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.imgn{color:var(--ink);font-weight:600}
+#imgView{border:0;border-radius:8px;padding:0;background:var(--paper);color:var(--ink);width:min(960px,calc(100vw - 32px));max-height:calc(100dvh - 32px)}
+#imgView::backdrop{background:rgba(0,0,0,.6)}
+#imgView .top{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 8px 8px 16px;background:var(--paper);border-bottom:1px solid var(--rule-strong);font-weight:600}
+#ivBody{display:grid;gap:8px;padding:8px}
+#ivBody img{display:block;width:100%;height:auto;min-height:60px;background:var(--raised);border-radius:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -279,6 +295,8 @@ input::placeholder,textarea::placeholder{color:var(--pencil)}
           <label>유형<select id="qType"></select></label>
           <label>출처<input type="text" id="qSrc" placeholder="예: 2025 A 6번, 모의 3회"></label>
         </div>
+        <div class="imgs"><span class="hint">문제 이미지 (선택 · GitHub 동기화 연결 필요)</span><div class="thumbs" id="qThumbs"></div>
+          <input type="file" id="qImg" accept="image/*" multiple hidden><button type="button" id="qImgAdd">+ 이미지 추가</button></div>
         <div class="actions"><button type="submit" class="primary" id="quickSubmit">저장</button></div>
       </form>
       <datalist id="qTopics"></datalist>
@@ -306,6 +324,8 @@ input::placeholder,textarea::placeholder{color:var(--pencil)}
         <label>③ 이미 알던 개념<textarea id="f3" placeholder="사실은 알고 있었던 것"></textarea></label>
         <label>④ 연결 고리<textarea id="f4" rows="4" placeholder="그 개념이 이 상황으로 이어지는 과정 (화살표로)"></textarea></label>
         <label>⑤ 판단 규칙<textarea id="f5" required placeholder="다음에 비슷한 문제에서 쓸 한 문장"></textarea></label>
+        <div class="imgs"><span class="hint">문제 이미지 (선택 · GitHub 동기화 연결 필요)</span><div class="thumbs" id="fThumbs"></div>
+          <input type="file" id="fImg" accept="image/*" multiple hidden><button type="button" id="fImgAdd">+ 이미지 추가</button></div>
         <div><span class="hint">유형 (여러 개 고를 수 있음)</span><div class="chips" id="fTypes" style="margin-top:6px"></div></div>
         <label class="check"><input type="checkbox" id="fToQuick" checked> ⑤ 판단 규칙을 빠른 정리에도 넣기</label>
         <div class="actions"><button type="submit" class="primary" id="fullSubmit">저장</button></div>
@@ -352,6 +372,10 @@ input::placeholder,textarea::placeholder{color:var(--pencil)}
   </main>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
+<dialog id="imgView" aria-labelledby="ivTitle">
+  <div class="top"><span id="ivTitle"></span><button type="button" class="text" id="ivClose">닫기</button></div>
+  <div id="ivBody"></div>
+</dialog>
 
 <script type="module">
 /* ============ 과목·단원 ============ */
@@ -498,7 +522,7 @@ const store = {
     const c = opt.cfg || this.cfg;
     return fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}${path}`, {
       method: opt.method || 'GET', cache:'no-store', body: opt.body,
-      headers: {'Authorization':'Bearer ' + c.token, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28',
+      headers: {'Authorization':'Bearer ' + c.token, 'Accept':opt.accept || 'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28',
                 ...(opt.body ? {'Content-Type':'application/json'} : {})},
     });
   },
@@ -624,6 +648,74 @@ $('#formSync').addEventListener('submit', async e => {
   }
 });
 
+/* ============ 문제 이미지: 데이터 저장소 images/ 폴더에 올리고, 볼 때 토큰으로 받아옴 ============ */
+// ponytail: 기록이나 이미지를 지워도 저장소의 이미지 파일은 남음. 용량이 문제 되면 정리 기능 추가
+const imgCache = new Map();   // 경로 → 화면용 blob URL
+async function shrink(file){   // 긴 변 1600px JPEG로 줄여서 장당 수백 KB로
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); bmp.close?.();
+  return new Promise((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('변환 실패')), 'image/jpeg', 0.82));
+}
+const blobB64 = b => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result.split(',')[1]); r.onerror = no; r.readAsDataURL(b); });
+async function uploadImg(file){
+  const blob = await shrink(file);
+  const path = 'images/' + uid() + '.jpg';
+  const res = await store.api('/contents/' + path, {method:'PUT', body:JSON.stringify({message:'오답노트 이미지 추가', content:await blobB64(blob)})});
+  if (!res.ok) await store.fail(res);
+  imgCache.set(path, URL.createObjectURL(blob));
+  return path;
+}
+async function imgUrl(path){
+  if (!imgCache.has(path)) {
+    if (!store.cfg) throw new Error('이미지를 보려면 GitHub 동기화를 연결하세요.');
+    const res = await store.api('/contents/' + path.split('/').map(encodeURIComponent).join('/'), {accept:'application/vnd.github.raw+json'});
+    if (!res.ok) await store.fail(res);
+    imgCache.set(path, URL.createObjectURL(await res.blob()));
+  }
+  return imgCache.get(path);
+}
+function loadImgs(box){
+  box.querySelectorAll('img[data-src]').forEach(im => imgUrl(im.dataset.src).then(u => im.src = u)
+    .catch(e => im.replaceWith(Object.assign(document.createElement('p'), {className:'hint msg-err', textContent:e instanceof TypeError ? '인터넷 연결을 확인하세요.' : e.message}))));
+}
+const hasImg = x => (x.imgs || []).length > 0;
+const imgTitle = (x, inner) => hasImg(x) ? `<button type="button" class="imgtitle" data-act="img" title="이미지 ${x.imgs.length}장 보기">${inner}</button>` : inner;
+const imgCount = x => hasImg(x) ? `<span class="imgn">이미지 ${x.imgs.length}장</span>` : '';
+
+// 양식의 이미지 칸 (q: 빠른 정리, f: 전체 양식)
+const formImgs = {q:[], f:[]};
+function renderThumbs(k){
+  const box = $('#' + k + 'Thumbs');
+  box.innerHTML = formImgs[k].map((p, i) => `<span class="thumb"><img alt="첨부 이미지 ${i + 1}" data-src="${esc(p)}"><button type="button" data-rm="${i}" aria-label="이미지 ${i + 1} 빼기">×</button></span>`).join('');
+  loadImgs(box);
+}
+function setFormImgs(k, list){ formImgs[k] = [...(list || [])]; renderThumbs(k); }
+function setupImgs(k, submitSel){
+  const input = $('#' + k + 'Img'), btn = $('#' + k + 'ImgAdd');
+  btn.onclick = () => store.cfg ? input.click() : toast('이미지는 GitHub 동기화를 연결한 뒤에 올릴 수 있습니다.');
+  input.addEventListener('change', async () => {
+    const files = [...input.files]; input.value = ''; if (!files.length) return;
+    btn.disabled = $(submitSel).disabled = true;
+    try {
+      for (const [i, f] of files.entries()) { btn.textContent = `올리는 중 ${i + 1}/${files.length}`; formImgs[k].push(await uploadImg(f)); renderThumbs(k); }
+    } catch(e) {
+      toast(e instanceof GhError ? e.message : '이미지를 올리지 못했습니다. 인터넷 연결과 파일 형식을 확인하세요.');
+    } finally { btn.disabled = $(submitSel).disabled = false; btn.textContent = '+ 이미지 추가'; }
+  });
+  $('#' + k + 'Thumbs').addEventListener('click', e => { const b = e.target.closest('[data-rm]'); if (!b) return; formImgs[k].splice(+b.dataset.rm, 1); renderThumbs(k); });
+}
+setupImgs('q', '#quickSubmit'); setupImgs('f', '#fullSubmit');
+
+function showImgs(x, title){
+  $('#ivTitle').textContent = title || '문제 이미지';
+  $('#ivBody').innerHTML = x.imgs.map((p, i) => `<img alt="문제 이미지 ${i + 1}" data-src="${esc(p)}">`).join('');
+  $('#imgView').showModal(); loadImgs($('#ivBody'));
+}
+$('#ivClose').onclick = () => $('#imgView').close();
+$('#imgView').addEventListener('click', e => { if (e.target === $('#imgView')) $('#imgView').close(); });   // 바깥 어두운 곳 누르면 닫기
+
 
 /* ============ 상태 ============ */
 const ui = { tab:'quick', subj:'content', unit:'', qType:'', rvType:'', editQuick:null, editFull:null, confirm:null, review:null, lastUnit:{} };
@@ -718,9 +810,9 @@ function renderQuick(){
     html += `<article class="it" data-id="${x.id}">
       ${codeTag(x.type)}
       <div class="body">
-        <p class="rule"><mark>${esc(x.rule)}</mark></p>
+        <p class="rule">${imgTitle(x, `<mark>${esc(x.rule)}</mark>`)}</p>
         ${x.when ? `<p class="when">${esc(x.when)}</p>` : ''}
-        <div class="meta">${topicOf(x) ? `<span class="topic">${esc(topicOf(x))}</span>` : ''}
+        <div class="meta">${imgCount(x)}${topicOf(x) ? `<span class="topic">${esc(topicOf(x))}</span>` : ''}
           ${!grouped && u ? `<span class="unit">${esc(u)}</span>` : ''}
           ${(x.srcs||[]).map(v => `<span class="src ${n>1?'many':''}">${esc(v)}</span>`).join('')}
           ${x.ok||x.miss ? `<span>복습 기억 ${x.ok||0}, 헷갈림 ${x.miss||0}</span>` : ''}</div>
@@ -743,6 +835,7 @@ function fillQuickForm(x){
   $('#qType').innerHTML = typeOptions(ui.subj, x?.type ?? '-');
   $('#qRule').value = x?.rule || ''; $('#qWhen').value = x?.when || '';
   $('#qSrc').value = x ? (x.srcs||[]).join(', ') : '';
+  setFormImgs('q', x?.imgs);
   $('#quickFormTitle').textContent = x ? '빠른 정리 수정' : `빠른 정리 적기 · ${SUBJ_NAME[ui.subj]}`;
   $('#quickCancel').textContent = x ? '수정 취소' : '닫기';
 }
@@ -755,17 +848,18 @@ $('#formQuick').addEventListener('submit', async e => {
   const old = items.find(x => x.id === ui.editQuick);
   const unit = $('#qUnit').value;
   const it = {...(old||{kind:'quick', id:uid(), createdAt:now()}), subject:ui.subj, unit, topic:$('#qTopic').value.trim(),
-    type:$('#qType').value, rule, when:$('#qWhen').value.trim(), srcs, updatedAt:now()};
+    type:$('#qType').value, rule, when:$('#qWhen').value.trim(), srcs, imgs:[...formImgs.q], updatedAt:now()};
   ui.lastUnit[ui.subj] = unit;
   await store.put(it);
   if (old) { toast('수정했습니다'); fillQuickForm(null); openQuick(false); }
-  else { toast('저장했습니다'); $('#qRule').value=''; $('#qWhen').value=''; $('#qSrc').value=''; $('#qTopic').value=''; $('#qRule').focus(); }
+  else { toast('저장했습니다'); $('#qRule').value=''; $('#qWhen').value=''; $('#qSrc').value=''; $('#qTopic').value=''; setFormImgs('q', []); $('#qRule').focus(); }
 });
 $('#quickCancel').onclick = () => { fillQuickForm(null); openQuick(false); };
 $('#quickList').addEventListener('click', async e => {
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const id = b.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id); if(!x) return;
   const act = b.dataset.act;
+  if (act==='img') showImgs(x, topicOf(x) || x.rule);
   if (act==='edit'){ fillQuickForm(x); openQuick(true); $('#formQuick').scrollIntoView({behavior:'smooth',block:'start'}); $('#qRule').focus(); }
   if (act==='del'){ ui.confirm = id; renderQuick(); }
   if (act==='del-no'){ ui.confirm = null; renderQuick(); }
@@ -807,6 +901,7 @@ function fillFullForm(x){
   $('#fDate').value = x?.date || today(); $('#fSrc').value = x?.src || '';
   ['1','2','3','4','5'].forEach(n => $('#f'+n).value = x?.['s'+n] || '');
   fTypesSel = new Set(x?.types || []); renderFTypes();
+  setFormImgs('f', x?.imgs);
   $('#fToQuick').checked = !x; $('#fToQuick').parentElement.hidden = !!x;
   $('#fullFormTitle').textContent = x ? '전체 양식 수정' : `전체 양식 적기 · ${SUBJ_NAME[ui.subj]}`;
   $('#fullCancel').textContent = x ? '수정 취소' : '닫기';
@@ -819,11 +914,11 @@ $('#formFull').addEventListener('submit', async e => {
   const old = items.find(x => x.id === ui.editFull);
   const unit = $('#fUnit').value, topic = $('#fTopic').value.trim();
   const it = {...(old||{kind:'full', id:uid(), createdAt:now()}), subject:ui.subj, unit, topic, date:$('#fDate').value, src:$('#fSrc').value.trim(),
-    s1:$('#f1').value.trim(), s2:$('#f2').value.trim(), s3:$('#f3').value.trim(), s4:$('#f4').value.trim(), s5, types:[...fTypesSel], updatedAt:now()};
+    s1:$('#f1').value.trim(), s2:$('#f2').value.trim(), s3:$('#f3').value.trim(), s4:$('#f4').value.trim(), s5, types:[...fTypesSel], imgs:[...formImgs.f], updatedAt:now()};
   const list = [it];
   if (!old && $('#fToQuick').checked){
     list.push({kind:'quick', id:uid(), createdAt:now()+1, updatedAt:now(), subject:ui.subj, unit, topic,
-      type:[...fTypesSel][0] || '-', rule:s5, when:it.s1, srcs: it.src ? [it.src] : []});
+      type:[...fTypesSel][0] || '-', rule:s5, when:it.s1, srcs: it.src ? [it.src] : [], imgs:[...it.imgs]});
   }
   ui.lastUnit[ui.subj] = unit;
   await store.putMany(list);
@@ -845,7 +940,7 @@ function renderFull(){
     html += `<article class="it fullnote" data-id="${x.id}">
       ${(x.types||[]).length ? codeTag(x.types[0]) : codeTag('-')}
       <div class="body">
-        <div class="head"><b>${esc(topicOf(x) || x.s1 || '주제 없음')}</b><span class="hint">${esc(x.date||'')}</span>
+        <div class="head">${imgTitle(x, `<b>${esc(topicOf(x) || x.s1 || '주제 없음')}</b>`)}<span class="hint">${esc(x.date||'')}</span>${imgCount(x)}
           ${(x.types||[]).slice(1).map(codeTag).join('')}${x.src ? `<span class="src hint">${esc(x.src)}</span>` : ''}</div>
         <dl>${rowsHtml}<dt>⑤ 판단 규칙</dt><dd class="rule"><mark>${esc(x.s5)}</mark></dd></dl>
       </div>
@@ -859,6 +954,7 @@ $('#fullList').addEventListener('click', async e => {
   const b = e.target.closest('button[data-act]'); if (!b) return;
   const id = b.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id); if(!x) return;
   const act = b.dataset.act;
+  if (act==='img') showImgs(x, topicOf(x) || x.s1);
   if (act==='edit'){ fillFullForm(x); openFull(true); $('#formFull').scrollIntoView({behavior:'smooth',block:'start'}); }
   if (act==='del'){ ui.confirm = id; renderFull(); }
   if (act==='del-no'){ ui.confirm = null; renderFull(); }
