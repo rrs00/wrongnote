@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>연결 실패 오답노트</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* 공책 콘셉트: 책상(청회색) 위에 흰 공책 한 권. 크롬은 잉크색만, 색은 데이터에만:
+   판단 규칙 = 형광펜(화면의 유일한 색), 유형 기호 = 빨간 펜 동그라미, 과목 = 선택된 인덱스 탭의 윗선. */
+:root{
+  --desk:#f2f4f7; --paper:#ffffff; --field:#f7f8fa; --ink:#0a0a0a; --pencil:#626262;
+  --rule:#eeeff1; --rule-strong:#e3e5e8; --control:#d4d4d4; --raised:#eceef1;
+  --red:#c4242a; --hl:#fff1a6; --navy:#141414; --navy-ink:#ffffff; --ok:#2e7d32;
+  --s-content:#2e7d32; --s-bioedu:#1d5fbf; --s-edu:#9a3b6e;
+  --font:"Pretendard Variable","Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --desk:#0b0b0b; --paper:#151515; --field:#1c1c1c; --ink:#f2f2f2; --pencil:#a8a8a8;
+  --rule:#222222; --rule-strong:#2e2e2e; --control:#444444; --raised:#262626;
+  --red:#f07070; --hl:rgba(255,222,84,.24); --navy:#f2f2f2; --navy-ink:#0b0b0b; --ok:#5cc28a;
+  --s-content:#5cc28a; --s-bioedu:#7aa7ec; --s-edu:#d68ab4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#0b0b0b; --paper:#151515; --field:#1c1c1c; --ink:#f2f2f2; --pencil:#a8a8a8;
+  --rule:#222222; --rule-strong:#2e2e2e; --control:#444444; --raised:#262626;
+  --red:#f07070; --hl:rgba(255,222,84,.24); --navy:#f2f2f2; --navy-ink:#0b0b0b; --ok:#5cc28a;
+  --s-content:#5cc28a; --s-bioedu:#7aa7ec; --s-edu:#d68ab4; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--desk);color:var(--ink);font:15px/1.6 var(--font);letter-spacing:-.003em;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(36px + env(safe-area-inset-top,0px)) calc(56px + env(safe-area-inset-bottom,0px));
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+p{margin:0}
+.wrap{max-width:880px;margin:0 auto}
+
+/* 머리 */
+.masthead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px;margin-bottom:20px}
+h1{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.3}
+.sub{color:var(--pencil);font-size:14px;margin-top:4px}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.status{font-size:13px;color:var(--pencil);display:inline-flex;align-items:center;gap:6px;margin-right:8px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--control)}
+.dot.ok{background:var(--ok)}
+
+/* 버튼·입력 */
+button{appearance:none;font:600 14px var(--font);color:var(--ink);background:var(--raised);border:1px solid transparent;
+  border-radius:6px;padding:0 14px;min-height:36px;cursor:pointer;line-height:1.3;
+  transition:background-color .12s,color .12s,transform .08s}
+button:hover{background:var(--rule-strong)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--navy);color:var(--navy-ink)}
+button.primary:hover{background:#333333}
+button.text{background:none;color:var(--pencil);padding:0 8px;min-height:32px;font-weight:500}
+button.text:hover{color:var(--ink);background:var(--raised)}
+button.danger,button.text.danger{color:var(--red)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary:hover{background:#d0d0d0}}
+:root[data-theme="dark"] button.primary:hover{background:#d0d0d0}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+label{display:grid;gap:6px;font-size:14px;color:var(--ink);font-weight:500}
+input[type=text],input[type=password],input[type=search],input[type=date],select,textarea{width:100%;min-width:0;font:15px var(--font);color:var(--ink);
+  background:var(--paper);border:1px solid var(--control);border-radius:6px;padding:0 12px;min-height:38px}
+input:focus,select:focus,textarea:focus{border-color:var(--ink);outline:none}
+select{padding-right:8px}
+textarea{resize:vertical;min-height:72px;line-height:1.6;padding:8px 12px}
+input::placeholder,textarea::placeholder{color:var(--pencil)}
+.hint{font-size:13px;color:var(--pencil);font-weight:400}
+.msg-err{color:var(--red)}
+
+/* 안내 띠·설정 */
+.banner{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;
+  background:var(--paper);border:1px solid var(--rule-strong);border-radius:8px;padding:12px 12px 12px 18px;font-size:14px;margin-bottom:20px}
+.settings{background:var(--paper);border:1px solid var(--rule-strong);border-radius:8px;padding:20px 24px 24px;margin-bottom:20px;display:grid;gap:16px}
+.settings h2{font-size:16px;margin:0;display:flex;justify-content:space-between;align-items:center}
+
+/* 과목 인덱스 탭: 선택된 과목만 제 색 윗선 */
+.subjects{display:flex;gap:4px;padding-left:12px;overflow-x:auto;scrollbar-width:none;position:relative;z-index:1}
+.subjects button{--c:var(--s-content);border:1px solid var(--rule-strong);border-bottom:0;border-top:3px solid var(--rule-strong);
+  border-radius:6px 6px 0 0;background:var(--field);color:var(--pencil);padding:0 16px;min-height:40px;white-space:nowrap;font-size:14px;margin-bottom:-1px}
+.subjects button:hover{background:var(--paper);color:var(--ink)}
+.subjects button[data-subj=bioedu]{--c:var(--s-bioedu)}
+.subjects button[data-subj=edu]{--c:var(--s-edu)}
+.subjects button[aria-selected="true"]{background:var(--paper);color:var(--ink);border-top-color:var(--c);min-height:42px}
+.subjects button:active{transform:none}
+.subjects .n{font-weight:400;color:var(--pencil);margin-left:6px;font-size:13px}
+
+/* 공책 본문 */
+.sheet{background:var(--paper);border:1px solid var(--rule-strong);border-radius:0 8px 8px 8px;
+  padding:4px 28px 32px;min-height:60vh}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--rule-strong);overflow-x:auto;scrollbar-width:none}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--pencil);padding:0;min-height:48px;white-space:nowrap;font-weight:600}
+.tabs button:hover{color:var(--ink);background:none}
+.tabs button:active{transform:none}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs .n{font-weight:400;font-size:13px;margin-left:4px;color:var(--pencil)}
+.filterbar{display:flex;align-items:center;gap:8px;padding:16px 0 0}
+.filterbar select{width:auto;max-width:100%;font-weight:600;border-color:transparent;background:var(--raised);color:var(--ink);min-height:36px}
+.panel{display:grid;gap:14px;padding-top:14px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tools input[type=search]{flex:1 1 170px;width:auto}
+.tools select{width:auto}
+.tools .grow{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--rule-strong);background:none;color:var(--pencil);padding:0 10px;min-height:30px;font-weight:500;font-size:13px;border-radius:999px}
+.chip:hover{color:var(--ink);background:var(--field)}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+
+/* 입력 양식 */
+.entry{background:var(--field);border:1px solid var(--rule-strong);border-radius:8px;padding:20px;display:grid;gap:16px}
+.entry h3{margin:0;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grid2{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.grid3{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+.check{display:flex;gap:8px;align-items:center;font-weight:500;color:var(--ink);font-size:14px}
+.check input{width:16px;height:16px;accent-color:var(--navy)}
+
+/* 기록 줄 */
+.unit-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:28px 0 0;padding-bottom:8px;
+  border-bottom:1.5px solid var(--ink);font-size:14px;font-weight:700;color:var(--ink)}
+.unit-h:first-child{margin-top:6px}
+.unit-h .cnt{font-weight:400;font-size:13px;color:var(--pencil)}
+.list{display:grid}
+.it{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:4px 14px;padding:16px 0 14px;border-bottom:1px solid var(--rule)}
+.it > .body{display:grid;gap:6px;min-width:0}
+.code{display:inline-grid;place-items:center;width:24px;height:24px;border:1.5px solid var(--red);color:var(--red);border-radius:50%;
+  font-weight:700;font-size:12px;line-height:1;margin-top:2px;flex:none}
+.code.none{border-style:dashed;border-color:var(--control);color:var(--pencil)}
+.rule{font-weight:600;font-size:16px;overflow-wrap:anywhere;line-height:1.65}
+/* 형광펜: 아래 절반만 칠한 굵은 밑줄 (글자 아래에 그려짐) */
+.rule mark{color:inherit;background:none;text-decoration:underline var(--hl);text-decoration-thickness:.5em;
+  text-underline-offset:-.32em;text-decoration-skip-ink:none}
+.when{color:var(--pencil);font-size:14px;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:13px;color:var(--pencil)}
+.topic{color:var(--ink);font-weight:600}
+.unit{color:var(--pencil)}
+.src{text-decoration:underline 1px var(--control);text-underline-offset:4px}
+.src.many{text-decoration:underline 2px var(--red);color:var(--ink)}
+.ops{display:flex;flex-wrap:wrap;gap:0 2px;justify-content:flex-end;align-items:flex-start}
+.ops form{display:flex;gap:6px;width:100%}
+.ops form input{flex:1}
+.ops:has(form),.ops:has(.confirm){grid-column:2/-1}
+.confirm{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--red)}
+.empty{color:var(--pencil);padding:40px 16px;text-align:center;font-size:14px;border:1px dashed var(--control);border-radius:8px;margin-top:8px}
+
+/* 전체 양식 */
+.fullnote dl{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px 16px;margin:8px 0 0}
+.fullnote dt{font-size:13px;color:var(--pencil);font-weight:600;padding-top:2px}
+.fullnote dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.fullnote .head{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.fullnote .head b{font-size:16px}
+@media (max-width:540px){.fullnote dl{grid-template-columns:1fr;gap:2px}.fullnote dd{margin-bottom:8px}}
+
+/* 실수·다시 읽기 */
+.block{display:grid;gap:12px}
+.block + .block{margin-top:20px}
+.block h3{margin:8px 0 0;font-size:16px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.inline{display:grid;gap:8px;grid-template-columns:1fr auto}
+.inline3{display:grid;gap:8px;grid-template-columns:2fr 1.4fr 1fr auto}
+@media (max-width:600px){.inline3{grid-template-columns:1fr 1fr}.inline3 input:first-child{grid-column:1/-1}}
+.line{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.line .txt{flex:1;min-width:180px;overflow-wrap:anywhere}
+.tally{color:var(--red);font-weight:700;min-width:36px;text-align:center}
+.done{color:var(--pencil);text-decoration:line-through}
+
+/* 복습: 색인 카드 */
+.flash{border:1px solid var(--rule-strong);border-radius:6px;background:var(--paper);padding:0 28px 28px;min-height:280px;
+  display:grid;align-content:start;gap:12px;max-width:640px;width:100%;margin:0 auto}
+.flash .top{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--pencil);padding:14px 0 10px;border-bottom:1.5px solid var(--red)}
+.flash .q{font-size:20px;font-weight:600;line-height:1.5;padding-top:4px}
+.flash .a{padding-top:14px;border-top:1px dashed var(--control);display:grid;gap:6px}
+.flash .a .rule{font-size:18px}
+.flash .lab{font-size:13px;color:var(--pencil)}
+.flash .t{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--pencil)}
+#rvChips{justify-content:center}
+#tab-review > .hint{text-align:center}
+
+/* 유형 설명 */
+.legend .r{display:grid;grid-template-columns:30px 170px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.legend .ex{color:var(--pencil);font-size:13px;margin-top:4px}
+@media (max-width:560px){.legend .r{grid-template-columns:30px minmax(0,1fr)}.legend .r .desc{grid-column:2}}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:6px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+@media (max-width:560px){
+  body{padding-top:calc(20px + env(safe-area-inset-top,0px))}
+  .sheet{padding:4px 16px 24px}
+  .masthead .bar{width:100%}
+  .status{width:100%;margin:0 0 2px}
+  .bar button.text:first-of-type{padding-left:0}
+  .it{grid-template-columns:24px minmax(0,1fr)}
+  .ops{grid-column:2}
+  .line{justify-content:flex-end;gap:4px 8px}
+  .line .txt{flex-basis:100%}
+  .flash{padding:0 18px 22px}
+  .flash .q{font-size:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <h1>연결 실패 오답노트</h1>
+      <p class="sub">개념은 알았는데 문제와 잇지 못한 것만 적습니다.</p>
+    </div>
+    <div class="bar">
+      <span class="status" id="status"><span class="dot" id="statusDot"></span><span id="statusText">불러오는 중</span></span>
+      <button id="btnSync" class="text" aria-expanded="false" aria-controls="syncPanel">동기화 설정</button>
+      <button id="btnExport" class="text" title="기록 전체를 JSON 파일로 저장">백업 저장</button>
+      <button id="btnImport" class="text" title="백업 파일에서 기록 불러오기">백업 불러오기</button>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <div class="banner" id="localBanner" hidden>
+    <span>지금은 이 브라우저에만 저장됩니다. 휴대폰과 PC에서 같이 쓰려면 GitHub 저장소를 연결하세요.</span>
+    <button class="primary" id="bannerSync">GitHub 연결하기</button>
+  </div>
+
+  <section class="settings" id="syncPanel" hidden>
+    <h2>GitHub 동기화 설정 <button type="button" class="text" id="syncClose">닫기</button></h2>
+    <p class="hint">기록을 내 GitHub <b>비공개</b> 저장소의 파일 하나에 저장해서 여러 기기에서 씁니다. 저장할 때마다 커밋이 남아 자동으로 백업됩니다.
+      토큰은 이 기기 브라우저에만 저장되고 GitHub 저장소나 코드에는 들어가지 않습니다. 기기마다 한 번씩 입력하세요.</p>
+    <form class="settings-form" id="formSync" autocomplete="off" style="display:grid;gap:12px">
+      <div class="grid2">
+        <label>GitHub 아이디<input type="text" id="gOwner" placeholder="예: mygithubid" required autocapitalize="off" spellcheck="false"></label>
+        <label>데이터 저장소 이름<input type="text" id="gRepo" placeholder="예: wrongnote-data" required autocapitalize="off" spellcheck="false"></label>
+      </div>
+      <label>파일 이름<input type="text" id="gPath" value="wrongnote.json" autocapitalize="off" spellcheck="false"></label>
+      <label>토큰 (Fine-grained personal access token)<input type="password" id="gToken" placeholder="github_pat_로 시작하는 값" autocomplete="off" spellcheck="false"></label>
+      <p class="hint" id="syncMsg" role="status"></p>
+      <div class="actions">
+        <button type="button" class="text danger" id="syncOff" hidden>연결 해제</button>
+        <button type="button" id="syncNow" hidden>지금 동기화</button>
+        <button type="submit" class="primary">연결 테스트 후 저장</button>
+      </div>
+    </form>
+  </section>
+
+  <nav class="subjects" role="tablist" aria-label="과목" id="subjects"></nav>
+
+  <main class="sheet" id="sheet">
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="quick" aria-selected="true">빠른 정리<span class="n" id="nQuick">0</span></button>
+      <button role="tab" data-tab="full" aria-selected="false">전체 양식<span class="n" id="nFull">0</span></button>
+      <button role="tab" data-tab="habit" aria-selected="false">실수·다시 읽기<span class="n" id="nHabit">0</span></button>
+      <button role="tab" data-tab="review" aria-selected="false">복습</button>
+      <button role="tab" data-tab="types" aria-selected="false">유형 설명</button>
+    </nav>
+
+    <div class="filterbar" id="filterbar">
+      <select id="unitFilter" aria-label="단원으로 거르기"></select>
+    </div>
+
+    <!-- 빠른 정리 -->
+    <section class="panel" id="tab-quick">
+      <div class="tools">
+        <input type="search" id="qSearch" placeholder="규칙, 상황, 주제, 출처 검색" aria-label="빠른 정리 검색">
+        <select id="qSort" aria-label="정렬">
+          <option value="unit">단원 순</option>
+          <option value="new">최근 추가 순</option>
+          <option value="many">출처 많은 순</option>
+          <option value="miss">복습 때 헷갈린 순</option>
+        </select>
+        <button class="primary" id="quickNew">새로 적기</button>
+      </div>
+      <form class="entry" id="formQuick" autocomplete="off" hidden>
+        <h3><span id="quickFormTitle">빠른 정리 적기</span><button type="button" class="text" id="quickCancel">닫기</button></h3>
+        <div class="grid2">
+          <label>단원<select id="qUnit"></select></label>
+          <label>세부 주제<input type="text" id="qTopic" list="qTopics" placeholder="고르거나 직접 입력"></label>
+        </div>
+        <label>판단 규칙 (한 문장)<textarea id="qRule" required placeholder="다음 문제에 그대로 쓸 수 있는 한 문장"></textarea></label>
+        <label>쓰는 상황 (짧게)<input type="text" id="qWhen" placeholder="문제를 처음 봤을 때 눈에 들어오는 단서"></label>
+        <div class="grid2">
+          <label>유형<select id="qType"></select></label>
+          <label>출처<input type="text" id="qSrc" placeholder="예: 2025 A 6번, 모의 3회"></label>
+        </div>
+        <div class="actions"><button type="submit" class="primary" id="quickSubmit">저장</button></div>
+      </form>
+      <datalist id="qTopics"></datalist>
+      <div class="chips" id="qChips"></div>
+      <div class="list" id="quickList"></div>
+    </section>
+
+    <!-- 전체 양식 -->
+    <section class="panel" id="tab-full" hidden>
+      <div class="tools">
+        <input type="search" id="fSearch" placeholder="전체 양식 검색" aria-label="전체 양식 검색">
+        <button class="primary" id="fullNew">새로 적기</button>
+      </div>
+      <form class="entry" id="formFull" autocomplete="off" hidden>
+        <h3><span id="fullFormTitle">전체 양식 적기</span><button type="button" class="text" id="fullCancel">닫기</button></h3>
+        <p class="hint">해설을 봐도 설명이 안 되거나 같은 유형을 두 번 틀린 문제만 씁니다.</p>
+        <div class="grid3">
+          <label>단원<select id="fUnit"></select></label>
+          <label>세부 주제<input type="text" id="fTopic" list="fTopics" placeholder="고르거나 직접 입력"></label>
+          <label>날짜<input type="date" id="fDate"></label>
+        </div>
+        <label>출처<input type="text" id="fSrc" placeholder="예: 2024 B 3번"></label>
+        <label>① 상황 요약<input type="text" id="f1" placeholder="문제 조건을 한 줄로"></label>
+        <label>② 막힌 지점<textarea id="f2" placeholder="어디서 멈췄는지, 처음에 어떻게 잘못 생각했는지"></textarea></label>
+        <label>③ 이미 알던 개념<textarea id="f3" placeholder="사실은 알고 있었던 것"></textarea></label>
+        <label>④ 연결 고리<textarea id="f4" rows="4" placeholder="그 개념이 이 상황으로 이어지는 과정 (화살표로)"></textarea></label>
+        <label>⑤ 판단 규칙<textarea id="f5" required placeholder="다음에 비슷한 문제에서 쓸 한 문장"></textarea></label>
+        <div><span class="hint">유형 (여러 개 고를 수 있음)</span><div class="chips" id="fTypes" style="margin-top:6px"></div></div>
+        <label class="check"><input type="checkbox" id="fToQuick" checked> ⑤ 판단 규칙을 빠른 정리에도 넣기</label>
+        <div class="actions"><button type="submit" class="primary" id="fullSubmit">저장</button></div>
+      </form>
+      <datalist id="fTopics"></datalist>
+      <div class="list" id="fullList"></div>
+    </section>
+
+    <!-- 실수 습관 · 다시 읽을 개념 -->
+    <section class="panel" id="tab-habit" hidden>
+      <div class="block">
+        <h3>실수 습관 <span class="hint">모든 과목 공통 · 알았는데 조건을 놓쳤거나 용어를 틀린 경우</span></h3>
+        <form class="inline" id="formHabit" autocomplete="off">
+          <input type="text" id="hText" placeholder="예: 단서 조건에 밑줄 긋고 풀기" aria-label="실수 습관" required>
+          <button type="submit" class="primary">추가</button>
+        </form>
+        <div id="habitList"></div>
+      </div>
+      <div class="block">
+        <h3>다시 읽을 개념 <span class="hint" id="rereadHint"></span></h3>
+        <form class="inline3" id="formReread" autocomplete="off">
+          <input type="text" id="rText" placeholder="개념 이름" aria-label="다시 읽을 개념" required>
+          <select id="rUnit" aria-label="단원"></select>
+          <input type="text" id="rSrc" placeholder="출처" aria-label="출처">
+          <button type="submit" class="primary">추가</button>
+        </form>
+        <div id="rereadList"></div>
+      </div>
+    </section>
+
+    <!-- 복습 -->
+    <section class="panel" id="tab-review" hidden>
+      <p class="hint">쓰는 상황을 보고 판단 규칙을 떠올린 뒤 확인하세요. 헷갈린 규칙은 다음 복습 때 먼저 나옵니다.</p>
+      <div class="chips" id="rvChips"></div>
+      <div class="flash" id="flash"></div>
+      <div class="actions" style="justify-content:center" id="rvActions"></div>
+    </section>
+
+    <!-- 유형 설명 -->
+    <section class="panel" id="tab-types" hidden>
+      <p class="hint" id="legendHint"></p>
+      <div class="legend" id="legend"></div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="module">
+/* ============ 과목·단원 ============ */
+const UNITS = {"content":[{"g":"세포학","u":"세포학 · 1장 세포의 구성 물질","t":["생체분자 간의 상호작용 및 물의 특성","화학결합과 생체에서의 친핵성 화학 반응","비타민","탄수화물","지질","단백질"]},{"g":"세포학","u":"세포학 · 2장 효소","t":["효소의 특징과 종류","효소의 기능","효소의 반응속도론","가역적 저해","비가역적 저해"]},{"g":"세포학","u":"세포학 · 3장 세포의 구조와 기능","t":["원핵세포 vs. 진핵세포","식물세포 vs. 동물세포","원심분리에 의한 세포소기관의 분리","표면구조","세포골격","핵","세포소기관 (물질의 합성·변형·이동·저장)","세포소기관 (에너지대사)","연접복합체"]},{"g":"세포학","u":"세포학 · 4장 생체에너지론","t":["대사의 종류","대사의 에너지 매개 분자 ­ ATP","생물학적 반응에 대한 산화제와 환원제","영양의 이용에 따른 분류","산소의 이용에 따른 분류"]},{"g":"세포학","u":"세포학 · 5장 광합성","t":["광합성의 정의와 광색소","광합성에 영향을 주는 환경요인","광계와 전자전달계","전자의 이동경로에 따른 광인산화 반응의 분류","광인산화의 개요·조절·저해","캘빈회로","C4 식물","CAM 식물"]},{"g":"세포학","u":"세포학 · 6장 세포호흡과 당질의 생합성","t":["세포호흡의 3단계","해당과정","아세틸-CoA 생성과정과 시트르산 회로","발효","포도당신생합성","PPP회로","전자전달계를 통한 산화적 인산화반응의 개요","산화적 인산화 반응의 조절 및 저해"]},{"g":"세포학","u":"세포학 · 7장 그 밖의 물질대사","t":["광합성세균 ·화학독립영양생물","질소고정세균","탈질세균","지질의 대사","단백질의 대사"]},{"g":"세포학","u":"세포학 · 8장 세포의 수송기작","t":["물질의 이동 방법에 따른 분류","수송체의 종류","소낭의 출아와 융합","세포내도입","생합성-분비경로와 회수경로"]},{"g":"분자생물학","u":"분자생물학 · 1장 핵산의 물리·화학적 특성","t":["실험을 통한 유전물질의 확인","핵산의 개요","DNA와 염색체의 분자구조"]},{"g":"분자생물학","u":"분자생물학 · 2장 DNA 복제와 유전자 발현","t":["DNA 복제 개요와 여러 가설","DNA 복제기구 및 복제과정","RNA 전사","RNA 구조와 기능","번역","상보성검정"]},{"g":"분자생물학","u":"분자생물학 · 3장 유전자 발현조절","t":["유전자 발현조절 개요","오페론과 전사감쇠","구조적 특징에 의한 조절","염색체 전체의 불활성화에 의한 조절","구조변형에 의한 조절","활성인자·억제인자에 의한 조절","전사후과정에 의한 조절","생물학적·환경적 요인에 의한 조절"]},{"g":"분자생물학","u":"분자생물학 · 4장 돌연변이와 돌연변이 수복기작","t":["유전자 내에서 일어나는 돌연변이","염색체 수와 구조 돌연변이","전이인자","복제 중 수복기작","자외선에 의한 수복기작","탈아미노화에 의한 수복기작"]},{"g":"분자생물학","u":"분자생물학 · 5장 분자생물학 실험방법","t":["유전자 재조합 실험","PCR과 cDNA 클로닝","표지추적자","DNA 염기서열 분석법","RFLPs와 PCR","유전자의 기능 확인","형질전환식물","기타 분자생물학 실험방법"]},{"g":"유전학","u":"유전학 · 1장 전달유전학","t":["멘델의 법칙 - 유전의 기본원리","멘델리즘의 확장","X-연관 유전과 가계도 분석","연관과 교차"]},{"g":"유전학","u":"유전학 · 2장 진화학 및 집단유전학","t":["원시대기와 생물의 출현","진화론","진화의 요인","진화의 증거","분자진화와 게놈진화","하디-바인베르크의 원리","하디-바인베르크의 방정식","하디-바인베르크 원리의 확장","유전자 빈도의 변화"]},{"g":"분류학","u":"분류학 · 1장 분류학","t":["분류학 총론","분류학에서 계통학으로의 접근","생식적 격리기작과 종분화 기작","원생생물의 분류","생활사의 다양성","균계","식물의 생활사","식물의 분류","동물의 분류기준","동물의 분류"]},{"g":"미생물학","u":"미생물학 · 1장 미생물학","t":["원핵생물의 일반적 특징","미생물의 배양과 생장","세균의 유전자 재조합과 유전자 지도 작성","바이러스의 일반적 특징","동물바이러스의 도입과정과 바이러스의 방출"]},{"g":"동물생리학","u":"동물생리학 · 1장 신호전달과 내분비계","t":["세포-세포 간 신호전달","세포 내부에서의 신호전달","시상하부와 뇌하수체","GH에 의한 성장 조절","갑상선과 부갑상선","부신","물질대사와 체온조절"]},{"g":"동물생리학","u":"동물생리학 · 2장 신경세포와 신경계","t":["신경계의 구조","막전위와 활동전위","시냅스 전달과 신경전달물질","중추신경계","체성신경계와 자율신경계"]},{"g":"동물생리학","u":"동물생리학 · 3장 감각계와 근육생리학","t":["조직","감각수용기의 특징","피부수용기와 고유수용기","미각과 후각","청각과 평형각","눈과 시각","골격근","평활근과 심근"]},{"g":"동물생리학","u":"동물생리학 · 4장 순환","t":["심장의 전기적 활성","심장주기와 박출량","동맥과 정맥","모세혈관과 림프계","혈압의 조절과 고혈압","혈액의 구성","혈액의 응고기작"]},{"g":"동물생리학","u":"동물생리학 · 5장 호흡","t":["정의와 구조","호흡활동과 조절","기체의 운반"]},{"g":"동물생리학","u":"동물생리학 · 6장 소화","t":["구강과 식도","위","소장과 대장","양분의 흡수와 이동"]},{"g":"동물생리학","u":"동물생리학 · 7장 배설","t":["신장의 구조","오줌의 생성과 배뇨","Na + 평형","K + 평형","산염기 평형"]},{"g":"면역학","u":"면역학 · 1장 면역","t":["면역계의 구성","내재면역과 적응면역의 개요","감염에 대한 숙주방어와 염증형성","비특이적 세포방어과 화학방어","T세포매개 적응면역","B세포매개 적응면역","자가면역질환과 이식면역"]},{"g":"발생학","u":"발생학 · 1장 세포분열","t":["체세포분열의 주기","제1감수분열과 제2감수분열","감수분열 시 일어나는 비분리 현상","세포주기 조절의 개요","세포주기 조절물질의 종류와 활성조절"]},{"g":"발생학","u":"발생학 · 2장 세포사멸과 암","t":["세포사멸","외부자극에 의한 세포사멸의 조절","암의 특징","분자수준에서의 암의 해석"]},{"g":"발생학","u":"발생학 · 3장 생식","t":["성의 결정","생식기의 구조","생식세포의 형성과정","인간의 생식에 대한 호르몬 조절"]},{"g":"발생학","u":"발생학 · 4장 발생","t":["수정","난할과 초기 발생","발생의 분석","배엽의 분화와 기관 형성","포유류의 발생과 분화"]},{"g":"식물학","u":"식물학 · 1장 식물의 생식과 발생","t":["꽃의 구조와 생식","종자형성과 초기생장","조직의 구성과 식물","뿌리·줄기·잎의 생장"]},{"g":"식물학","u":"식물학 · 2장 식물생리학","t":["물의 수송","기공개폐에 의한 증산작용의 조절","무기염류와 영양분의 수송","식물생장 호르몬","식물체의 빛에 대한 반응","다양한 자극에 대한 식물체의 반응"]},{"g":"생태학","u":"생태학 · 1장 일반생태학","t":["생존을 위한 행동","생태계의 구조","생태계의 기능","개체군의 특성","개체군간 상호작용","군집구조","군집의 천이","생물군계"]},{"g":"생태학","u":"생태학 · 2장 환경생태학","t":["생물 농축","BOD 측정방법"]}],"bioedu":[{"g":"Ⅰ 과학의 본성","u":"Ⅰ · 1. 과학의 본성","t":["인식론적 관점","현대적 관점의 10가지 본성"]},{"g":"Ⅰ 과학의 본성","u":"Ⅰ · 2. 과학지식","t":["과학지식의 구성요소(사개법원이가)","과학지식의 종류","과학지식의 변화모형"]},{"g":"Ⅰ 과학의 본성","u":"Ⅰ · 3. 과학적 방법","t":["귀납법","연역법","가설 연역법","귀추법","사회적 합의","과학적 방법 적용 사례(생물)"]},{"g":"Ⅰ 과학의 본성","u":"Ⅰ · 4. 과학적 설명","t":["상관관계와 인과관계"]},{"g":"Ⅰ 과학의 본성","u":"Ⅰ · 5. 과학 탐구","t":["개념적 탐구","과학적 의문","탐구활동"]},{"g":"Ⅰ 과학의 본성","u":"Ⅰ · 6. 과학 탐구 기능","t":["기초 탐구 기능(관측예분추의)","통합 탐구 기능(문가통변해결일)"]},{"g":"Ⅱ 과학사와 과학철학","u":"Ⅱ · 1. 과학사","t":["자연관","과학사 교육의 효과","생명현상의 특성"]},{"g":"Ⅱ 과학사와 과학철학","u":"Ⅱ · 2. 과학철학","t":["경험주의(귀납)","이성주의(연역)","실증주의","환원주의","포퍼의 반증주의","라카토스의 연구프로그램","쿤의 패러다임과 과학혁명","라우든의 연구전통","파이어아벤트의 반과학적 방법"]},{"g":"Ⅲ 교수학습이론","u":"Ⅲ · 1. 심리철학과 교수학습이론","t":[]},{"g":"Ⅲ 교수학습이론","u":"Ⅲ · 2. 피아제","t":["인지적 구성주의","인지발달 단계"]},{"g":"Ⅲ 교수학습이론","u":"Ⅲ · 3. 브루너","t":["교수 이론의 특성"]},{"g":"Ⅲ 교수학습이론","u":"Ⅲ · 4. 비고츠키","t":["사회적 구성주의","근접발달영역","수업 이론"]},{"g":"Ⅲ 교수학습이론","u":"Ⅲ · 5. 오수벨","t":["학습의 종류","유의미학습이 일어날 조건","유의미학습의 원리와 종류","유의미 수용학습","선행조직자"]},{"g":"Ⅲ 교수학습이론","u":"Ⅲ · 6. 구성주의 학습이론","t":[]},{"g":"Ⅲ 교수학습이론","u":"Ⅲ · 7. 드라이버의 대체적 개념틀","t":[]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 1. 발견학습","t":[]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 2. Schwab 탐구학습","t":["가설 검증 수업 모형"]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 3. 순환학습","t":["로슨의 순환학습 모형","4E, 5E","7E","POE, PEOE"]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 4. 협동학습","t":["STAD","Jigsaw","GI","Co-op co-op","TGT, LT"]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 5. 개념변화 교수학습","t":["포도덩굴 모형(웨스트·파인즈)","인지갈등 모형(하슈웨)","권재술의 인지갈등모형","발생학습 모형","드라이버의 개념변화 수업모형"]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 6. 비유(모형) 교수학습","t":["FAR guide","TWA 모형","클레멘트 가교전략"]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 7. STS 교수학습","t":[]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 8. SSI 교수학습","t":[]},{"g":"Ⅳ 교수학습 방법","u":"Ⅳ · 9. 기타 교수학습","t":[]},{"g":"Ⅴ 과학 학습 평가","u":"Ⅴ · 1. 평가의 기능과 유형","t":["평가의 기능","평가의 유형","여러 가지 평가 방법"]},{"g":"Ⅴ 과학 학습 평가","u":"Ⅴ · 2. 과학교육의 평가","t":["인지적 영역","탐구적 영역(기초·통합 탐구기능)","정의적 영역","블룸의 교육목적 분류"]},{"g":"Ⅴ 과학 학습 평가","u":"Ⅴ · 3. 평가도구와 문항분석","t":["타당도","신뢰도","문항분석"]},{"g":"Ⅴ 과학 학습 평가","u":"Ⅴ · 4. 과학 수행평가","t":["수행평가의 특성","평가표(채점표)"]},{"g":"Ⅴ 과학 학습 평가","u":"Ⅴ · 5. 이론적 가설의 평가(Giere)","t":[]}],"edu":[{"g":"교육과정","u":"교육과정","t":["숨겨진(hidden) 교육과정","영 교육과정","진행과정에 따른 교육과정","형식도야론의 개념과 형식도야를 강조하는 교육과정 관점","진보주의에 영향을 미친 교육과정","학문중심 교육과정의 교육목표","인간중심 교육과정의 목표","역량중심 교육과정","교육과정 설계 시 고려해야 할 수평적 조직의 원리","교육과정 설계 시 고려해야 할 수직적 조직의 원리","교육과정 설계 시 고려해야 할 총체적 조직의 원리","분과형 설계","STEAM 교육과정의 개념","학습자중심 설계","아동중심(활동중심) 설계","생성형 설계","경험중심 설계","문제중심설계","생활장면 중심 설계","중핵형 설계","중핵 설계","교육과정 통합","드레이크의 통합 교육과정","타일러(Tyler)의 합리적-선형적 개발모형","타바(Taba)의 단원 개발모형","워커의 자연주의적 개발모형","스킬벡(Skilbeck) 교육과정 모형","아이즈너의 문제해결목표","파이너의 교육과정 재개념화","애플의 탈숙련화와 재숙련화","위긴스와 맥타이(Wiggins & McTighe)가 말한 영…","에릭슨의 개념기반 교육과정 설계모형의 개념","스나이더(Snyder)의 교육과정 실행의 관점 3가지의 개념…","홀 외 교사의 관심에 기초한 교육과정 적용모형(CBAM)","던킨과 비들의 교실 내 수업과정 연구모형의 변인","교육과정 재구성","다문화 교육","모두를 위한 교육과정의 세 가지 주요 접근법과 접근법","우리나라 교육과정 운영 체제","2022 개정 교육과정의 목표","자유학기제","집중이수제","블록타임제의 개념","고교학점제"]},{"g":"교육방법 및 공학","u":"교육방법 및 공학","t":["객관주의와 구성주의","교수-학습과정을 의사소통으로 볼 때 벌로(Berlo)의 SM…","섀넌(쉐논)과 슈람(Shannon&Schramm)의 모형을…","블룸의 인지적 영역 수업 목표 6단계","수업목표 진술 시","ADDIE 모형","딕과 캐리(W. Dick & L. Carey)의 체제적 교수…","래피드 프로토타입(RP)","켐프(Kemp)의 비선형적 교수설계모형","윌리스의 R2D2","롸이겔루스(Reigeluth)의 교수설계이론의 관점에서 교과…","가네의 교수설계이론","가네의 9가지 교수사태에 해당하는 교사의 수업활동과 이에 따…","메릴의 내용-요소 제시이론에서 1차 제시방법","롸이겔루스의 교수설계이론","켈러 ARCS 모형이 제안하는 전략의 목적과 이를 통해 높일…","캐롤의 학교학습이론에서 학습을 극대화할 수 있는 방법","블룸의 완전학습모형에서 완전학습","브루너 발견학습","오수벨 유의미학습","오수벨 유의미학습에서 선행조직자","조나센(Jonassen)의 구성주의 학습환경 설계 모형","4C/ID 모형","상황학습","정착식 교수","인지적 도제학습","인지적 유연성 모델","목표기반 시나리오","상보적 교수법","문제중심학습(PBL)","프로젝트 학습","웹기반으로 프로젝트학습","웹퀘스트(WebQuest)","자원기반학습","Big 6 skills","정보 리터러시","팀티칭","헤르바르트의 교수법","스키너 프로그램 교수법에서 제안하는 학습원리 5가지","개별화교수법","크론바흐 적성처치 상호작용이론(ATI)에서 적성","토의법","토의법 중 단상토의(심포지움)","자기주도학습","협동학습의 원리","협동학습 유형별","교육매체의 효과성","하이니히(Heinich)가 제안한 ASSURE모형","인지부하","e-러닝","블렌디드 러닝","마이크로러닝(microlearning)","거꾸로 학습","AI디지털 교과서","컴퓨터 기반 협력학습","모바일 러닝","인공지능 기반 교육"]},{"g":"교육평가","u":"교육평가","t":["평가관","명명척도","총괄적 평가와 형성적 평가의 목적","메타평가","타일러(Tyler)의 목표성취모형","프로버스(Provus) 평가모형","스크리븐의 탈목표평가 모형","아이즈너(Eisner)의 평가모형이 제안하는 평가 관점 2가…","스터플빔(Stufflebeam) 평가모형의 관점에서 평가","델파이기법","규준지향평가","Z점수의 개념","준거지향평가의 정의","성취평가제","진단평가","피드백","역동적 평가","능력지향평가와 성장지향평가","학생 참여형 평가","수행평가","수행평가의 신뢰도를 높이는 방법","루브릭","총체적(총괄적) 루브릭과 분석적 루브릭","포트폴리오 평가","리커트 척도","사회성 측정법의 개념","양적 평가","논․ 서술형 문항","타당도","신뢰도","신뢰도와 타당도의 관계","객관도의 개념","평정자 오류","문항반응이론에서 문항곤란도","고전검사이론과 문항반응이론 비교","내적 타당도와 외적타당도"]},{"g":"교육행정","u":"교육행정","t":["교육행정","각 교육행정 원리","과학적 관리론","인간관계론","개방체제","호이와 미스켈(Hoy & Miskel)의 학교체계모형에서 학…","공식조직","계선조직과 참모조직","아래에 언급된 조직 유형론에서 조직유형을 분류하는 기준과 학…","에치오니의 순응유형에서 순응의 의미","각 개념에 따른 학교 조직의 특징","조직화된 무질서(organized anarchy)","전문적 관료제의 개념과 학교의 관료제적 특징과 전문적","민츠버그(Mintzberg)의 조직구조 중 기계식 관료제와…","이완조직(Loosely Coupled System)","이중조직","전문적 학습공동체","학습조직","리커트(Likert)의 관리체제유형에 따른 조직풍토 4가지와…","할핀(Halpin/핼핀)과 크로프트(Croft)가 분류한 학…","호이와 미스켈(Hoy & Miskel)이 분류한 학교풍토 유…","윌로어의 관점에서 인간주의적 학교와 보호지향적 학교","홀(Hall)","맥그리거(McGregor)의 X-Y이론","아지리스의 이론에서 미성숙 조직","세시아와 글리노우의 문화","스타인호프와 오웬스의 학교문화유형론","하그리브스(Hargreaves)","갈등의 개념","학교 조직 차원에서 갈등 해소와 조성방안","토마스(Thomas)의 갈등관리 이론의 관점에서 갈등관리전략…","교육조직 관리기법","조직개발기법","매슬로우의 욕구체계론 이론","허즈버그의 동기-위생에서 동기요인과 위생요인","앨더퍼의 ERG이론을 구성하는 3가지 욕구","브룸의 기대이론","아담스의 공정성 이론에서 공정성을 지각하는 상황","로크와 라탐의 목표설정이론","피들러(Fiedler)의 상황적 리더십 이론에서 상황을 결정…","허쉬와 블랜차드의 이론에서 상황을 규정하는 구인","리더십 대용상황과 억제상황","변혁적 지도성","분산적 지도성","슈퍼리더십(초우량 지도성)","도덕적 지도성","문화적 지도성의 개념","감성리더십의 개념","교육지도성의 개념과 주체","민주적 지도성","조하리의 창에서 4가지 영역","의사결정 모형 중 합리모형","의사결정 참여의 필요성","호이(Hoy)와 타터(Tarter)의 참여적 의사결정모형에서…","교육기획","선택적 장학의 개념","임상장학","동료장학","자기장학","약식장학","컨설팅 장학","멘토링 장학","교사를 중심으로 전문성을 강화하는 상향식(bottom-up)…","교육재정의 운영절차와 각 단계별로 중요하게 요구되는 원리 2…","품목별예산제도","영기준예산제도","단위학교 책임경영제","단위학교 예산제도","일몰예산제도","학교책무성","학교 선택권"]},{"g":"교육심리","u":"교육심리","t":["피아제(J. Piaget)의 개인적 구성주의의 관점에서 인지…","피아제(Piaget) 인지발달이론에서 중고등학생 시기의 학생…","비고츠키의 관점을 토대로 근접발달영역의 개념","비고츠키의 관점에서 비계(scaffolding)","에릭슨(Erikson)의 심리사회적 발달이론","마샤(J. Marcia)가 제시한 청소년기 정체감 지위 분류","브론펜브레너(Bronfenbrenner)의 생물생태학적 발달…","셀만(Selman)의 관점에서 사회적 조망수용능력","콜버그의 관점에서 도덕성의 발달","학교에서 도덕적인 판단과 행동의 차이를 좁히는데 효과적인 지…","레스트(Rest)의 관점에서 도덕성","길리건(Gilligan) 도덕성 발달 이론","카텔이 제시한 지능이론의 관점에서 일반지능을 구성하는 2가지…","가드너(Gardner)의 다중지능이론","스턴버그(Sternberg)의 관점에서 성공을 위한 지능","정서지능","지능검사 결과 해석 시","창의성","창의적 사고기법 (창의성 계발 기법)","칙센트미하이가 주장한 몰입의 개념","영재성의 3가지 요소(렌줄리)","학습양식","케이건의 관점에서 학습양식의 분류기준","콜브(Kolb)의 학습유형 분류 기준과 4가지 학습유형","내재적 동기와 외재적 동기","매슬로우(Maslow)의 욕구위계에 근거하여 결핍욕구와 성장…","코빙톤의 자기가치이론의 관점에서 자기가치의 개념과 이를 향한…","자기결정성 이론의 관점에서 인간의 기본적인 심리욕구 3가지와…","유기적 통합이론","기대x가치이론에서 기대와 가치에 영향을 주는 요인 2가지씩","성공에 대한 기대","귀인이론","자기효능감","교사효능감의 개념과 교사효능감이 교육에 미치는 영향","드웩의 관점에서 능력에 대한 두 가지 견해","심층적 정보처리 방식과 피상적 정보처리 방식","학습된 무기력","숙달목표와 수행목표의 개념과","강화","행동수정 기법","모델링","자기조절학습","작업기억 용량의 한계를 조정하는","메타인지","아래에 제시된 전이 이론들"]}]};
+const SUBJECTS = [
+  {id:'content', name:'생물 내용학'},
+  {id:'bioedu',  name:'생물교육론'},
+  {id:'edu',     name:'교육학'},
+];
+const SUBJ_NAME = Object.fromEntries(SUBJECTS.map(s => [s.id, s.name]));
+const UIDX = {}; { let o = 0; for (const s of SUBJECTS) for (const x of UNITS[s.id]) UIDX[x.u] = {s:s.id, o:o++, g:x.g, t:x.t}; }
+
+/* ============ 규칙 유형 ============ */
+const TYPES = {
+  A:['억제제·차단 실험','차단 지점 앞 단계는 쌓이고 뒤 단계는 줄어든다. 전자전달계라면 앞은 환원, 뒤는 산화된다.','DCMU, 시안화물, 올리고마이신, 콜히친'],
+  B:['결실·돌연변이 실험','없앴을 때 사라진 기능 = 그 요소의 기능. 이중 돌연변이의 표현형이 닮은 쪽이 상위(대사 경로는 앞 단계, 조절 경로는 하류).','녹아웃 생쥐, 효모 cdc, lac 오페론, 면역 결손'],
+  C:['두 조건 동시 처리','효과가 합보다 크면 협력·직렬(상승), 합과 같으면 독립, 합보다 작으면 같은 경로를 공유한다.','에머슨 증강효과, 호르몬 병용'],
+  D:['산화·환원/전자 흐름','전자를 받으면 환원, 빼앗기면 산화. 산화도 변화로 전달 순서를 정한다.','광계 I·II, 전자전달계 복합체'],
+  E:['반응 속도·평형','Km·Vmax 변화로 기작을 판단(경쟁적: Km↑, 비경쟁적: Vmax↓). 임계농도 = k_off/k_on.','경쟁·비경쟁 저해, 액틴 중합'],
+  F:['막전위·이온 이동','투과도가 큰 이온의 평형전위 쪽으로 막전위가 움직인다.','활동전위, 시냅스, 근수축'],
+  G:['항상성·음성 피드백','말단 호르몬 결핍 → 음성 피드백 해제 → 상위 호르몬 증가. 결함 위치는 상위 호르몬 수치로 찾는다.','시상하부-뇌하수체-표적샘, 혈당'],
+  H:['압력·흐름(스탈링 힘)','여과 = 혈압 − 교질삼투압. 삼투압↓·혈압↑ → 여과↑ → 부종.','모세혈관, 사구체 여과'],
+  I:['표지·추적 실험','표지가 나타나는 위치·시간 순서 = 이동 경로·순서.','펄스-체이스, 메셀슨-스탈, 허시-체이스'],
+  J:['유전 분석','분리비·재조합 빈도·가계도 패턴으로 유전 방식과 거리를 정한다.','연관 지도, X 연관, 하디-바인베르크'],
+  K:['이식·제거(발생)','이식편이 주변의 운명을 바꾸면 신호원(형성체), 위치와 상관없이 원래대로 분화하면 이미 결정된 상태.','형성체 이식, 농도 기울기'],
+  L:['생태 변수 바꾸기','기본 지위 경계 = 무생물적 요인, 실현 지위 축소 = 생물적 요인. 한 종 제거 시 연쇄 변화 추적.','코넬 따개비, 페인 불가사리, 가우스'],
+  M:['분리·검출 기법','분리 기준(크기·전하·친화도)과 검출 원리(탐침·항체·형광)로 밴드·용출 결과를 읽는다.','전기영동, 크로마토그래피, 블롯, PCR'],
+  N:['계통·분류 분석','공유파생형질로만 묶고, 외군으로 형질 방향을 정하고, 최소가정 계통수를 고른다.','분계도, 단계통·측계통, 3역'],
+};
+// 생물교육론·교육학: 서술형에서 연결이 끊기는 지점별로 나눔
+const EDU_TYPES = {
+  P:['사례 → 이론 이름','수업·상담 장면에서 결정적 단서 하나를 찾아 이론·모형 이름에 잇는다.','“선행조직자를 먼저 제시” → 오수벨, “예측 후 관찰·설명” → POE'],
+  Q:['비슷한 개념 구분','두 개념을 가르는 기준 하나를 정해 두고 그 기준으로만 판단한다.','규준지향 vs 준거지향, 동화 vs 조절, 갈등 Ⅰ vs 갈등 Ⅱ'],
+  R:['단계·순서','모형의 단계 이름과 순서를 묶어 외우고, 사례의 각 장면을 단계에 맞춘다.','순환학습(탐색-개념 도입-개념 적용), 5E, ADDIE'],
+  S:['학자·용어 짝','학자 ↔ 이론 ↔ 핵심 용어를 한 줄로 묶는다. 답안에는 정확한 명칭을 쓴다.','쿤–패러다임–정상과학, 라카토스–견고한 핵–보호대'],
+  T:['적용·시사점','이론의 주장 한 문장을 교실에서 할 행동 한 가지로 바꿔 쓴다.','비고츠키 → 비계 설정, 피아제 → 인지갈등 유발'],
+};
+const typesOf = s => s === 'content' ? TYPES : EDU_TYPES;
+const ALLTYPES = {...TYPES, ...EDU_TYPES};
+
+/* ============ 예시 기록 (처음 한 번만) ============ */
+const SEED = [
+  {kind:'quick',subject:'content',unit:'세포학 · 5장 광합성',topic:'광계',type:'D',rule:'광계 판단은 파장 숫자가 아니라 사이토크롬 산화(광계 I)·환원(광계 II) 방향으로 한다.',when:'낯선 생물·파장으로 광계를 물을 때',srcs:['홍조류 실험']},
+  {kind:'quick',subject:'content',unit:'세포학 · 5장 광합성',topic:'에머슨 효과',type:'C',rule:'두 빛을 함께 줄 때 효율 > 각각의 합 → 두 광계가 직렬로 협력한다.',when:'두 조건을 따로, 함께 처리한 그래프',srcs:['에머슨 실험']},
+  {kind:'quick',subject:'content',unit:'세포학 · 3장 세포의 구조와 기능',topic:'세포골격',type:'E',rule:'임계농도 = k₂(해리)/k₁(첨가). 그 이상에서만 알짜 중합이 일어난다.',when:'속도상수를 주고 임계농도를 물을 때',srcs:['미세섬유 3번']},
+  {kind:'quick',subject:'content',unit:'동물생리학 · 4장 순환',topic:'모세혈관 물질교환',type:'H',rule:'조직 pH↓ → 소동맥 평활근·괄약근 이완 → 혈류·여과↑.',when:'조직 대사 변화 후 물질교환을 물을 때',srcs:['모세혈관 6번']},
+  {kind:'quick',subject:'content',unit:'동물생리학 · 4장 순환',topic:'모세혈관 물질교환',type:'H',rule:'간 손상 → 알부민↓ → 교질삼투압↓ → 여과↑·재흡수↓ → 부종.',when:'간·신장 손상, 단백질 결핍 상황',srcs:['모세혈관 6번']},
+  {kind:'quick',subject:'content',unit:'생태학 · 1장 일반생태학',topic:'생태적 지위',type:'L',rule:'기본 지위 경계 = 무생물적 요인, 실현 지위 축소 = 생물적 요인.',when:'한 종을 없앤 뒤 분포가 바뀌는 그림',srcs:['코넬 따개비']},
+  {kind:'quick',subject:'content',unit:'생태학 · 1장 일반생태학',topic:'생태적 지위',type:'L',rule:'조간대는 위쪽일수록 노출 시간↑ → 건조↑.',when:'조간대 높이에 따라 분포가 다를 때',srcs:['코넬 따개비']},
+  {kind:'full',subject:'content',date:'2026-10-24',unit:'세포학 · 5장 광합성',topic:'광계',src:'홍조류 Cyt f 실험',
+   s1:'홍조류에 660 nm, 562 nm 빛을 비추고 사이토크롬 f의 산화도를 측정',
+   s2:'‘적색광 = 광계 II’로 외워서 660 nm를 광계 II로 착각함',
+   s3:'광계 I은 사이토크롬에서 전자를 받아 가고, 광계 II는 사이토크롬에 전자를 공급한다',
+   s4:'660 nm on → 산화↑ → 전자를 빼감 → 광계 I\n562 nm on → 환원↑ → 전자를 공급 → 광계 II\nDCMU 처리 → 562 nm에도 환원 안 됨 → 광계 II가 사이토크롬 앞',
+   s5:'광계 판단은 파장 숫자가 아니라 사이토크롬의 산화·환원 방향으로 한다. 파장 대응은 생물(안테나 색소)마다 다르다.',
+   types:['D','A']},
+  {kind:'habit',text:'단서 조건("단량체로만 존재", "간섭 없음")에 밑줄 긋고 풀기',count:1},
+  {kind:'habit',text:'괄호 기입은 명칭을 정확히 쓰기 (모세혈관전 괄약근 → 괄약근으로 줄이지 않기)',count:1},
+  {kind:'quick',subject:'bioedu',unit:'Ⅳ · 5. 개념변화 교수학습',topic:'인지갈등 모형(하슈웨)',type:'Q',rule:'선개념(C1)과 현상(R2)이 부딪히면 갈등 Ⅰ, 선개념(C1)과 과학 개념(C2)이 부딪히면 갈등 Ⅱ.',when:'수업 장면을 주고 어느 갈등인지 물을 때',srcs:['예시']},
+  {kind:'quick',subject:'edu',unit:'교육평가',topic:'규준지향평가',type:'Q',rule:'“서열·상대적 위치”가 단서면 규준지향, “정해진 기준 도달 여부”가 단서면 준거지향.',when:'평가 결과 해석 사례를 주고 평가 유형을 물을 때',srcs:['예시']},
+];
+// 이전 버전에서 저장된 예시 기록에는 단원이 없으므로 여기서 채워 보여 줌
+const SEED_FB = Object.fromEntries(SEED.map((s, i) => ['seed-' + (i + 1), {unit:s.unit, topic:s.topic, subject:s.subject}]));
+
+/* ============ 유틸 ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const now = () => Date.now();
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,2200); }
+function setStatus(text, ok){ $('#statusText').textContent=text; $('#statusDot').classList.toggle('ok', !!ok); }
+
+/* ============ 저장소: 이 기기 + GitHub 비공개 저장소 동기화 ============ */
+let items = [];
+
+const enc = new TextEncoder(), dec = new TextDecoder();
+function b64encode(str){
+  const bytes = enc.encode(str); let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64decode(b64){ const bin = atob(b64.replace(/\s/g, '')); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return dec.decode(u); }
+const hhmm = () => new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+const seedItems = () => SEED.map((s, i) => ({...s, id:'seed-' + (i + 1), createdAt:1761400000000 + i, updatedAt:1761400000000}));
+const TOMB_DAYS = 60;
+
+// 같은 id는 updatedAt이 더 큰 쪽이 이김. 오래된 삭제 표시는 정리.
+function mergeItems(a, b){
+  const m = new Map();
+  for (const x of [...a, ...b]) { const y = m.get(x.id); if (!y || (x.updatedAt || 0) >= (y.updatedAt || 0)) m.set(x.id, x); }
+  const cut = Date.now() - TOMB_DAYS * 864e5;
+  return [...m.values()].filter(x => !(x.deleted && (x.updatedAt || 0) < cut));
+}
+function sameItems(a, b){
+  if (a.length !== b.length) return false;
+  const m = new Map(a.map(x => [x.id, (x.updatedAt || 0) + ':' + !!x.deleted]));
+  return b.every(x => m.get(x.id) === (x.updatedAt || 0) + ':' + !!x.deleted);
+}
+
+class GhError extends Error { constructor(status, msg){ super(msg); this.status = status; } }
+
+const store = {
+  key:'wrongnote.v1', cfgKey:'wrongnote.gh',
+  all:[], cfg:null, busy:false, again:false, timer:null,
+
+  init(onChange){
+    this.onChange = onChange;
+    let data = null;
+    try { data = JSON.parse(localStorage.getItem(this.key) || 'null'); } catch(e) {}
+    try { this.cfg = JSON.parse(localStorage.getItem(this.cfgKey) || 'null'); } catch(e) {}
+    this.localOk = (() => { try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); return true; } catch(e) { return false; } })();
+    this.all = Array.isArray(data) ? data : seedItems();
+    this.saveLocal(); this.emit(); this.refreshUi();
+    if (this.cfg) this.sync();
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && this.cfg) this.sync(); });
+    window.addEventListener('online', () => { if (this.cfg) this.sync(); });
+  },
+  emit(){ this.onChange(this.all.filter(x => !x.deleted)); },
+  saveLocal(){ try { localStorage.setItem(this.key, JSON.stringify(this.all)); } catch(e) { toast('이 기기에 저장하지 못했습니다. 백업 저장을 눌러 두세요.'); } },
+  refreshUi(){
+    $('#localBanner').hidden = !!this.cfg;
+    $('#syncOff').hidden = !this.cfg; $('#syncNow').hidden = !this.cfg;
+    if (!this.cfg) setStatus(this.localOk ? '이 기기에만 저장 중' : '저장 불가(사생활 보호 모드?)', this.localOk);
+  },
+
+  // 화면에서 부르는 함수들
+  async put(it){ this.apply([it]); },
+  async putMany(list){ this.apply(list); },
+  async remove(id){ const x = this.all.find(i => i.id === id); if (x) this.apply([{...x, deleted:true}]); },
+  apply(list){
+    const t = Date.now();
+    for (const it of list) {
+      const v = {...it, updatedAt:t};
+      const i = this.all.findIndex(x => x.id === v.id);
+      if (i >= 0) this.all[i] = v; else this.all.push(v);
+    }
+    this.saveLocal(); this.emit();
+    if (this.cfg) { setStatus('저장 대기 중', false); clearTimeout(this.timer); this.timer = setTimeout(() => this.sync(), 1200); }
+  },
+
+  // ---- GitHub API
+  api(path, opt = {}){
+    const c = opt.cfg || this.cfg;
+    return fetch(`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}${path}`, {
+      method: opt.method || 'GET', cache:'no-store', body: opt.body,
+      headers: {'Authorization':'Bearer ' + c.token, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28',
+                ...(opt.body ? {'Content-Type':'application/json'} : {})},
+    });
+  },
+  filePath(c){ return '/contents/' + (c || this.cfg).path.split('/').map(encodeURIComponent).join('/'); },
+  async fail(res){
+    let msg = ''; try { msg = (await res.json()).message || ''; } catch(e) {}
+    const m = {401:'토큰이 잘못됐거나 만료됐습니다. 동기화 설정에서 새 토큰을 넣어 주세요.',
+               403:/rate limit/i.test(msg) ? 'GitHub 요청 한도를 넘었습니다. 잠시 뒤 다시 시도합니다.' : '토큰 권한이 부족합니다. 데이터 저장소의 Contents 읽기·쓰기 권한을 확인하세요.',
+               404:'저장소를 찾을 수 없습니다. 아이디·저장소 이름과 토큰의 저장소 선택을 확인하세요.'}[res.status];
+    throw new GhError(res.status, m || `GitHub 오류 ${res.status}: ${msg}`);
+  },
+  async ghGet(){
+    const res = await this.api(this.filePath());
+    if (res.status === 404) {
+      const repo = await this.api('');            // 저장소는 있는데 파일만 없는지 확인
+      if (repo.ok) return {items:[], sha:null};
+      return this.fail(repo);
+    }
+    if (!res.ok) return this.fail(res);
+    const j = await res.json();
+    let text;
+    if (j.encoding === 'base64' && j.content) text = b64decode(j.content);
+    else {                                          // 1MB 넘는 파일은 blob API로
+      const r2 = await this.api('/git/blobs/' + j.sha); if (!r2.ok) return this.fail(r2);
+      text = b64decode((await r2.json()).content);
+    }
+    let data; try { data = JSON.parse(text); } catch(e) { throw new GhError(0, '저장소의 기록 파일을 읽지 못했습니다. 파일을 직접 고쳤다면 JSON 형식을 확인하세요.'); }
+    return {items: Array.isArray(data) ? data : (data.items || []), sha:j.sha};
+  },
+  async ghPut(list, sha){
+    const body = JSON.stringify({
+      message: `오답노트 저장 ${new Date().toLocaleString('ko-KR')}`,
+      content: b64encode(JSON.stringify({app:'wrongnote', version:1, savedAt:new Date().toISOString(), items:list}, null, 1)),
+      ...(sha ? {sha} : {}),
+    });
+    const res = await this.api(this.filePath(), {method:'PUT', body});
+    if (res.status === 409 || res.status === 422) return false;   // 다른 기기가 먼저 저장함 → 다시 받아서 합치기
+    if (!res.ok) return this.fail(res);
+    return true;
+  },
+
+  // 받아서 합치고, 달라진 게 있으면 올리기
+  async sync(){
+    if (!this.cfg) return;
+    if (this.busy) { this.again = true; return; }
+    this.busy = true; clearTimeout(this.timer);
+    try {
+      setStatus('GitHub와 맞추는 중', false);
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const remote = await this.ghGet();
+        const merged = mergeItems(remote.items, this.all);
+        if (!sameItems(merged, this.all)) { this.all = merged; this.saveLocal(); this.emit(); }
+        if (sameItems(merged, remote.items)) break;
+        if (await this.ghPut(merged, remote.sha)) break;
+        if (attempt === 3) throw new GhError(409, '다른 기기와 저장이 겹쳤습니다. 잠시 뒤 다시 시도합니다.');
+      }
+      setStatus(`GitHub에 저장됨 · ${hhmm()}`, true);
+      this.lastError = null;
+    } catch(e) {
+      const offline = e instanceof TypeError || !navigator.onLine;
+      const msg = offline ? '오프라인 · 이 기기에 저장해 두고 연결되면 올립니다' : e.message;
+      setStatus(offline ? '오프라인 · 이 기기에 저장됨' : '동기화 실패 · 이 기기에 저장됨', false);
+      if (!offline && this.lastError !== msg) toast(msg);
+      this.lastError = msg;
+      if (e.status === 403 || e.status === 409 || offline) { clearTimeout(this.timer); this.timer = setTimeout(() => this.sync(), 60000); }
+    } finally {
+      this.busy = false;
+      if (this.again) { this.again = false; this.sync(); }
+    }
+  },
+
+  // ---- 설정 화면
+  async connect(c){
+    const res = await this.api('', {cfg:c});
+    if (!res.ok) await this.fail(res);
+    const repo = await res.json();
+    if (!repo.private) throw new GhError(0, `${c.owner}/${c.repo}는 공개 저장소입니다. 기록이 누구에게나 보이니 비공개(Private) 저장소를 쓰세요.`);
+    this.cfg = c;
+    try { localStorage.setItem(this.cfgKey, JSON.stringify(c)); } catch(e) {}
+    this.refreshUi();
+    await this.sync();
+    return repo.full_name;
+  },
+  disconnect(){
+    this.cfg = null; clearTimeout(this.timer);
+    try { localStorage.removeItem(this.cfgKey); } catch(e) {}
+    this.refreshUi();
+  },
+};
+
+/* ---- 동기화 설정 화면 ---- */
+function openSync(open){
+  $('#syncPanel').hidden = !open; $('#btnSync').setAttribute('aria-expanded', open);
+  if (open) {
+    const c = store.cfg || {};
+    $('#gOwner').value = c.owner || ''; $('#gRepo').value = c.repo || ''; $('#gPath').value = c.path || 'wrongnote.json';
+    $('#gToken').value = ''; $('#gToken').placeholder = c.token ? '저장된 토큰 사용 중 (바꿀 때만 입력)' : 'github_pat_로 시작하는 값';
+    $('#syncMsg').textContent = c.owner ? `${c.owner}/${c.repo} 저장소에 연결돼 있습니다.` : '';
+    $('#syncMsg').classList.remove('msg-err');
+    $('#syncPanel').scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+}
+$('#btnSync').onclick = () => openSync($('#syncPanel').hidden);
+$('#bannerSync').onclick = () => openSync(true);
+$('#syncClose').onclick = () => openSync(false);
+$('#syncNow').onclick = () => store.sync();
+$('#syncOff').onclick = () => { store.disconnect(); openSync(true); $('#syncMsg').textContent = '연결을 해제했습니다. 기록은 이 기기에 그대로 남아 있습니다.'; };
+$('#formSync').addEventListener('submit', async e => {
+  e.preventDefault();
+  const c = {owner:$('#gOwner').value.trim(), repo:$('#gRepo').value.trim().replace(/\.git$/, ''),
+             path:($('#gPath').value.trim() || 'wrongnote.json').replace(/^\/+/, ''),
+             token:$('#gToken').value.trim() || store.cfg?.token || ''};
+  const msg = $('#syncMsg'); msg.classList.remove('msg-err');
+  if (!c.token) { msg.textContent = '토큰을 입력하세요.'; msg.classList.add('msg-err'); return; }
+  msg.textContent = '연결하는 중…';
+  try {
+    const name = await store.connect(c);
+    msg.textContent = store.lastError ? store.lastError : `${name}에 연결했습니다. 이제 이 기기에서 쓴 기록이 GitHub에 저장됩니다.`;
+    if (store.lastError) msg.classList.add('msg-err'); else { toast('GitHub에 연결했습니다'); setTimeout(() => openSync(false), 1500); }
+  } catch(err) {
+    msg.textContent = err instanceof TypeError ? '인터넷 연결을 확인하세요.' : err.message;
+    msg.classList.add('msg-err');
+  }
+});
+
+
+/* ============ 상태 ============ */
+const ui = { tab:'quick', subj:'content', unit:'', qType:'', rvType:'', editQuick:null, editFull:null, confirm:null, review:null, lastUnit:{} };
+try { const t = localStorage.getItem('wrongnote.tab'); if (t) ui.tab = t; } catch(e) {}
+try { const s = localStorage.getItem('wrongnote.subj'); if (SUBJ_NAME[s]) ui.subj = s; } catch(e) {}
+
+function setItems(list){ items = list.slice(); renderAll(); }
+const byKind = k => items.filter(x => x.kind === k && !x.deleted);
+
+// 단원·주제·과목 읽기 (예전 기록과도 호환)
+function unitOf(x){ if (x.unit && UIDX[x.unit]) return x.unit; const f = SEED_FB[x.id]; return f && !x.subject ? (f.unit || '') : ''; }
+function topicOf(x){ if (x.topic) return x.topic; if (x.unit && !UIDX[x.unit]) return x.unit; const f = SEED_FB[x.id]; return f && !x.subject ? (f.topic || '') : ''; }
+function subjOf(x){ if (x.subject && SUBJ_NAME[x.subject]) return x.subject; const u = unitOf(x); return u ? UIDX[u].s : 'content'; }
+const inSubj = x => subjOf(x) === ui.subj;
+const inUnit = x => !ui.unit || unitOf(x) === ui.unit;
+const listOf = k => byKind(k).filter(inSubj);
+const viewOf = k => listOf(k).filter(inUnit);
+const unitOrder = u => u && UIDX[u] ? UIDX[u].o : 1e9;
+
+function unitOptions(subj, sel, opt = {}){
+  const groups = [];
+  for (const x of UNITS[subj]) { let g = groups.at(-1); if (!g || g.g !== x.g) groups.push(g = {g:x.g, list:[]}); g.list.push(x); }
+  const label = x => x.u.includes(' · ') ? x.u.split(' · ').slice(1).join(' · ') : x.u;
+  const one = x => opt.counts && !opt.counts[x.u] && x.u !== sel ? '' :
+    `<option value="${esc(x.u)}" ${x.u === sel ? 'selected' : ''}>${esc(label(x))}${opt.counts ? ` (${opt.counts[x.u] || 0})` : ''}</option>`;
+  return groups.map(g => {
+    const inner = g.list.map(one).join('');
+    if (!inner) return '';
+    return g.list.length === 1 && g.list[0].u === g.g ? inner : `<optgroup label="${esc(g.g)}">${inner}</optgroup>`;
+  }).join('');
+}
+function fillTopics(listSel, subj, unit){
+  const src = unit && UIDX[unit] ? UIDX[unit].t : UNITS[subj].flatMap(x => x.t);
+  const used = items.filter(x => !x.deleted && subjOf(x) === subj && (!unit || unitOf(x) === unit)).map(topicOf).filter(Boolean);
+  $(listSel).innerHTML = [...new Set([...used, ...src])].map(t => `<option value="${esc(t)}">`).join('');
+}
+function typeOptions(subj, sel){
+  return `<option value="-">- (개념 확인)</option>` + Object.entries(typesOf(subj)).map(([k,v]) =>
+    `<option value="${k}" ${sel===k?'selected':''}>${k} ${v[0]}</option>`).join('');
+}
+const codeTag = t => t && t !== '-' && ALLTYPES[t] ? `<span class="code" title="${esc(ALLTYPES[t][0])}">${esc(t)}</span>` : `<span class="code none" title="개념 확인">–</span>`;
+const typeName = t => t && ALLTYPES[t] ? ALLTYPES[t][0] : '';
+const confirmHtml = `<span class="confirm">삭제할까요? <button class="danger" data-act="del-yes">삭제</button><button data-act="del-no">취소</button></span>`;
+
+/* ============ 그리기 ============ */
+function renderAll(){
+  const counts = Object.fromEntries(SUBJECTS.map(s => [s.id, 0]));
+  items.forEach(x => { if (!x.deleted && (x.kind === 'quick' || x.kind === 'full')) counts[subjOf(x)]++; });
+  $('#subjects').innerHTML = SUBJECTS.map(s =>
+    `<button role="tab" data-subj="${s.id}" aria-selected="${ui.subj === s.id}">${s.name}<span class="n">${counts[s.id]}</span></button>`).join('');
+  $('#sheet').dataset.subj = ui.subj;
+  $('#nQuick').textContent = viewOf('quick').length;
+  $('#nFull').textContent = viewOf('full').length;
+  $('#nHabit').textContent = byKind('habit').length + viewOf('reread').filter(x => !x.done).length;
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === ui.tab));
+  ['quick','full','habit','review','types'].forEach(t => $('#tab-'+t).hidden = t !== ui.tab);
+  $('#filterbar').hidden = ui.tab === 'types';
+  renderUnitFilter(); renderQuick(); renderFull(); renderHabit(); renderReview(); renderLegend();
+}
+function renderUnitFilter(){
+  const counts = {};
+  ['quick','full','reread'].forEach(k => listOf(k).forEach(x => { const u = unitOf(x); if (u) counts[u] = (counts[u] || 0) + 1; }));
+  const total = ['quick','full','reread'].reduce((n, k) => n + listOf(k).length, 0);
+  $('#unitFilter').innerHTML = `<option value="">${SUBJ_NAME[ui.subj]} 모든 단원 (${total})</option>` + unitOptions(ui.subj, ui.unit, {counts});
+  $('#unitFilter').value = ui.unit;
+}
+
+/* ---- 빠른 정리 ---- */
+function renderQuick(){
+  const base = viewOf('quick');
+  const types = typesOf(ui.subj);
+  const tc = {}; base.forEach(x => { const t = types[x.type] ? x.type : '-'; tc[t] = (tc[t] || 0) + 1; });
+  const keys = Object.keys(types).concat('-').filter(k => tc[k]);
+  $('#qChips').innerHTML = keys.length > 1 ? `<button class="chip" data-t="" aria-pressed="${ui.qType===''}">모든 유형</button>` +
+    keys.map(k => `<button class="chip" data-t="${k}" aria-pressed="${ui.qType===k}">${k === '-' ? '개념 확인' : k + ' ' + types[k][0]} ${tc[k]}</button>`).join('') : '';
+  if (ui.qType && !tc[ui.qType]) ui.qType = '';
+  const q = $('#qSearch').value.trim().toLowerCase();
+  const rows = base.filter(x => (!ui.qType || (types[x.type] ? x.type : '-') === ui.qType) &&
+    (!q || [x.rule, x.when, topicOf(x), unitOf(x), (x.srcs||[]).join(' ')].join(' ').toLowerCase().includes(q)));
+  const s = $('#qSort').value;
+  rows.sort((a,b) => s==='many' ? (b.srcs||[]).length-(a.srcs||[]).length || b.createdAt-a.createdAt
+    : s==='miss' ? (b.miss||0)-(a.miss||0) || (a.ok||0)-(b.ok||0)
+    : s==='unit' ? unitOrder(unitOf(a))-unitOrder(unitOf(b)) || topicOf(a).localeCompare(topicOf(b)) || b.createdAt-a.createdAt
+    : b.createdAt-a.createdAt);
+  const grouped = s === 'unit';
+  let html = '', cur = null;
+  const groupCount = {}; if (grouped) rows.forEach(x => { const u = unitOf(x); groupCount[u] = (groupCount[u] || 0) + 1; });
+  for (const x of rows) {
+    const u = unitOf(x);
+    if (grouped && u !== cur) { cur = u; html += `<h4 class="unit-h"><span>${esc(u || '단원 미지정')}</span><span class="cnt">${groupCount[u]}</span></h4>`; }
+    const n = (x.srcs||[]).length;
+    html += `<article class="it" data-id="${x.id}">
+      ${codeTag(x.type)}
+      <div class="body">
+        <p class="rule"><mark>${esc(x.rule)}</mark></p>
+        ${x.when ? `<p class="when">${esc(x.when)}</p>` : ''}
+        <div class="meta">${topicOf(x) ? `<span class="topic">${esc(topicOf(x))}</span>` : ''}
+          ${!grouped && u ? `<span class="unit">${esc(u)}</span>` : ''}
+          ${(x.srcs||[]).map(v => `<span class="src ${n>1?'many':''}">${esc(v)}</span>`).join('')}
+          ${x.ok||x.miss ? `<span>복습 기억 ${x.ok||0}, 헷갈림 ${x.miss||0}</span>` : ''}</div>
+      </div>
+      <div class="ops">${ui.confirm === x.id ? confirmHtml
+        : `<button class="text" data-act="addsrc">출처 추가</button><button class="text" data-act="edit">수정</button><button class="text danger" data-act="del">삭제</button>`}</div>
+    </article>`;
+  }
+  $('#quickList').innerHTML = html || `<div class="empty">${base.length ? '조건에 맞는 규칙이 없습니다.'
+    : `${ui.unit ? '이 단원에는' : SUBJ_NAME[ui.subj] + '에는'} 아직 기록이 없습니다. <b>새로 적기</b>를 눌러 첫 판단 규칙을 적어 보세요.`}</div>`;
+}
+function openQuick(open){ $('#formQuick').hidden = !open; $('#quickNew').hidden = open; }
+function fillQuickForm(x){
+  ui.editQuick = x ? x.id : null;
+  const unit = x ? unitOf(x) : (ui.unit || ui.lastUnit[ui.subj] || '');
+  $('#qUnit').innerHTML = `<option value="">단원 고르기</option>` + unitOptions(ui.subj, unit);
+  $('#qUnit').value = unit;
+  fillTopics('#qTopics', ui.subj, unit);
+  $('#qTopic').value = x ? topicOf(x) : '';
+  $('#qType').innerHTML = typeOptions(ui.subj, x?.type ?? '-');
+  $('#qRule').value = x?.rule || ''; $('#qWhen').value = x?.when || '';
+  $('#qSrc').value = x ? (x.srcs||[]).join(', ') : '';
+  $('#quickFormTitle').textContent = x ? '빠른 정리 수정' : `빠른 정리 적기 · ${SUBJ_NAME[ui.subj]}`;
+  $('#quickCancel').textContent = x ? '수정 취소' : '닫기';
+}
+$('#quickNew').onclick = () => { fillQuickForm(null); openQuick(true); $('#qUnit').value ? $('#qRule').focus() : $('#qUnit').focus(); };
+$('#qUnit').addEventListener('change', () => fillTopics('#qTopics', ui.subj, $('#qUnit').value));
+$('#formQuick').addEventListener('submit', async e => {
+  e.preventDefault();
+  const rule = $('#qRule').value.trim(); if (!rule) return;
+  const srcs = $('#qSrc').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const old = items.find(x => x.id === ui.editQuick);
+  const unit = $('#qUnit').value;
+  const it = {...(old||{kind:'quick', id:uid(), createdAt:now()}), subject:ui.subj, unit, topic:$('#qTopic').value.trim(),
+    type:$('#qType').value, rule, when:$('#qWhen').value.trim(), srcs, updatedAt:now()};
+  ui.lastUnit[ui.subj] = unit;
+  await store.put(it);
+  if (old) { toast('수정했습니다'); fillQuickForm(null); openQuick(false); }
+  else { toast('저장했습니다'); $('#qRule').value=''; $('#qWhen').value=''; $('#qSrc').value=''; $('#qTopic').value=''; $('#qRule').focus(); }
+});
+$('#quickCancel').onclick = () => { fillQuickForm(null); openQuick(false); };
+$('#quickList').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const id = b.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id); if(!x) return;
+  const act = b.dataset.act;
+  if (act==='edit'){ fillQuickForm(x); openQuick(true); $('#formQuick').scrollIntoView({behavior:'smooth',block:'start'}); $('#qRule').focus(); }
+  if (act==='del'){ ui.confirm = id; renderQuick(); }
+  if (act==='del-no'){ ui.confirm = null; renderQuick(); }
+  if (act==='del-yes'){ ui.confirm = null; await store.remove(id); toast('삭제했습니다'); }
+  if (act==='addsrc'){
+    const ops = b.parentElement;
+    ops.innerHTML = `<form data-addsrc><input type="text" placeholder="같은 규칙이 나온 출처 (예: 2024 B)" aria-label="출처 추가" required><button class="primary">추가</button><button type="button" data-act="cancel-src">취소</button></form>`;
+    ops.querySelector('input').focus();
+  }
+  if (act==='cancel-src') renderQuick();
+});
+$('#quickList').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target.closest('form[data-addsrc]'); if (!f) return;
+  const id = f.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id);
+  const v = f.querySelector('input').value.trim(); if (!v || !x) return;
+  await store.put({...x, srcs:[...(x.srcs||[]), v], updatedAt:now()});
+  toast(`출처를 추가했습니다 (${(x.srcs||[]).length+1}회)`);
+});
+$('#qChips').addEventListener('click', e => { const c=e.target.closest('.chip'); if(!c) return; ui.qType=c.dataset.t; renderQuick(); });
+$('#qSearch').addEventListener('input', renderQuick);
+$('#qSort').addEventListener('change', renderQuick);
+
+/* ---- 전체 양식 ---- */
+let fTypesSel = new Set();
+function renderFTypes(){
+  $('#fTypes').innerHTML = Object.entries(typesOf(ui.subj)).map(([k,v]) =>
+    `<button type="button" class="chip" data-t="${k}" aria-pressed="${fTypesSel.has(k)}">${k} ${esc(v[0])}</button>`).join('');
+}
+$('#fTypes').addEventListener('click', e => { const c=e.target.closest('.chip'); if(!c) return; const k=c.dataset.t; fTypesSel.has(k)?fTypesSel.delete(k):fTypesSel.add(k); renderFTypes(); });
+function openFull(open){ $('#formFull').hidden = !open; $('#fullNew').hidden = open; }
+function fillFullForm(x){
+  ui.editFull = x ? x.id : null;
+  const unit = x ? unitOf(x) : (ui.unit || ui.lastUnit[ui.subj] || '');
+  $('#fUnit').innerHTML = `<option value="">단원 고르기</option>` + unitOptions(ui.subj, unit);
+  $('#fUnit').value = unit;
+  fillTopics('#fTopics', ui.subj, unit);
+  $('#fTopic').value = x ? topicOf(x) : '';
+  $('#fDate').value = x?.date || today(); $('#fSrc').value = x?.src || '';
+  ['1','2','3','4','5'].forEach(n => $('#f'+n).value = x?.['s'+n] || '');
+  fTypesSel = new Set(x?.types || []); renderFTypes();
+  $('#fToQuick').checked = !x; $('#fToQuick').parentElement.hidden = !!x;
+  $('#fullFormTitle').textContent = x ? '전체 양식 수정' : `전체 양식 적기 · ${SUBJ_NAME[ui.subj]}`;
+  $('#fullCancel').textContent = x ? '수정 취소' : '닫기';
+}
+$('#fullNew').onclick = () => { fillFullForm(null); openFull(true); $('#fUnit').focus(); };
+$('#fUnit').addEventListener('change', () => fillTopics('#fTopics', ui.subj, $('#fUnit').value));
+$('#formFull').addEventListener('submit', async e => {
+  e.preventDefault();
+  const s5 = $('#f5').value.trim(); if (!s5) return;
+  const old = items.find(x => x.id === ui.editFull);
+  const unit = $('#fUnit').value, topic = $('#fTopic').value.trim();
+  const it = {...(old||{kind:'full', id:uid(), createdAt:now()}), subject:ui.subj, unit, topic, date:$('#fDate').value, src:$('#fSrc').value.trim(),
+    s1:$('#f1').value.trim(), s2:$('#f2').value.trim(), s3:$('#f3').value.trim(), s4:$('#f4').value.trim(), s5, types:[...fTypesSel], updatedAt:now()};
+  const list = [it];
+  if (!old && $('#fToQuick').checked){
+    list.push({kind:'quick', id:uid(), createdAt:now()+1, updatedAt:now(), subject:ui.subj, unit, topic,
+      type:[...fTypesSel][0] || '-', rule:s5, when:it.s1, srcs: it.src ? [it.src] : []});
+  }
+  ui.lastUnit[ui.subj] = unit;
+  await store.putMany(list);
+  toast(old ? '수정했습니다' : (list.length>1 ? '저장하고 빠른 정리에도 넣었습니다' : '저장했습니다'));
+  fillFullForm(null); openFull(false);
+});
+$('#fullCancel').onclick = () => { fillFullForm(null); openFull(false); };
+function renderFull(){
+  const q = $('#fSearch').value.trim().toLowerCase();
+  const all = viewOf('full');
+  const list = all.filter(x => !q || [Object.values(x).join(' '), topicOf(x)].join(' ').toLowerCase().includes(q))
+    .sort((a,b) => unitOrder(unitOf(a))-unitOrder(unitOf(b)) || (b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt);
+  let html = '', cur = null;
+  for (const x of list) {
+    const u = unitOf(x);
+    if (u !== cur) { cur = u; html += `<h4 class="unit-h"><span>${esc(u || '단원 미지정')}</span><span class="cnt">${list.filter(y => unitOf(y) === u).length}</span></h4>`; }
+    const rowsHtml = [['① 상황 요약',x.s1],['② 막힌 지점',x.s2],['③ 이미 알던 개념',x.s3],['④ 연결 고리',x.s4]]
+      .filter(r=>r[1]).map(([k,v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+    html += `<article class="it fullnote" data-id="${x.id}">
+      ${(x.types||[]).length ? codeTag(x.types[0]) : codeTag('-')}
+      <div class="body">
+        <div class="head"><b>${esc(topicOf(x) || x.s1 || '주제 없음')}</b><span class="hint">${esc(x.date||'')}</span>
+          ${(x.types||[]).slice(1).map(codeTag).join('')}${x.src ? `<span class="src hint">${esc(x.src)}</span>` : ''}</div>
+        <dl>${rowsHtml}<dt>⑤ 판단 규칙</dt><dd class="rule"><mark>${esc(x.s5)}</mark></dd></dl>
+      </div>
+      <div class="ops">${ui.confirm === x.id ? confirmHtml
+        : `<button class="text" data-act="edit">수정</button><button class="text danger" data-act="del">삭제</button>`}</div>
+    </article>`;
+  }
+  $('#fullList').innerHTML = html || `<div class="empty">${all.length ? '조건에 맞는 기록이 없습니다.' : '어려웠던 문제가 생기면 <b>새로 적기</b>로 자세히 정리해 보세요.'}</div>`;
+}
+$('#fullList').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const id = b.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id); if(!x) return;
+  const act = b.dataset.act;
+  if (act==='edit'){ fillFullForm(x); openFull(true); $('#formFull').scrollIntoView({behavior:'smooth',block:'start'}); }
+  if (act==='del'){ ui.confirm = id; renderFull(); }
+  if (act==='del-no'){ ui.confirm = null; renderFull(); }
+  if (act==='del-yes'){ ui.confirm = null; await store.remove(id); toast('삭제했습니다'); }
+});
+$('#fSearch').addEventListener('input', renderFull);
+
+/* ---- 실수 습관 · 다시 읽을 개념 ---- */
+function renderHabit(){
+  const h = byKind('habit').sort((a,b)=>(b.count||0)-(a.count||0) || b.createdAt-a.createdAt);
+  $('#habitList').innerHTML = h.length ? h.map(x => `<div class="line" data-id="${x.id}">
+      <span class="txt">${esc(x.text)}</span>
+      <button class="text" data-act="minus" aria-label="횟수 줄이기">−</button><span class="tally" title="반복 횟수">${x.count||1}회</span>
+      <button class="text" data-act="plus" aria-label="횟수 늘리기">＋</button>
+      ${ui.confirm===x.id ? confirmHtml : `<button class="text danger" data-act="del">삭제</button>`}</div>`).join('')
+    : `<div class="empty">같은 실수가 다시 나오면 ＋를 눌러 횟수를 세세요.</div>`;
+  $('#rereadHint').textContent = SUBJ_NAME[ui.subj] + ' · 개념 자체를 몰랐던 경우, 다시 읽으면 체크';
+  const unit = ui.unit || ui.lastUnit[ui.subj] || '';
+  if (document.activeElement !== $('#rUnit')) $('#rUnit').innerHTML = `<option value="">단원</option>` + unitOptions(ui.subj, unit);
+  const r = viewOf('reread').sort((a,b)=>(a.done?1:0)-(b.done?1:0) || unitOrder(unitOf(a))-unitOrder(unitOf(b)) || b.createdAt-a.createdAt);
+  $('#rereadList').innerHTML = r.length ? r.map(x => `<div class="line" data-id="${x.id}">
+      <label class="check txt"><input type="checkbox" data-act="toggle" ${x.done?'checked':''}><span class="${x.done?'done':''}">${esc(x.text)}</span></label>
+      <span class="hint">${esc([unitOf(x), x.src].filter(Boolean).join(', '))}</span>
+      ${ui.confirm===x.id ? confirmHtml : `<button class="text danger" data-act="del">삭제</button>`}</div>`).join('')
+    : `<div class="empty">모르던 개념은 이름만 적어 두고, 교재를 다시 읽으면 체크하세요.</div>`;
+}
+$('#formHabit').addEventListener('submit', async e => { e.preventDefault(); const v=$('#hText').value.trim(); if(!v) return;
+  await store.put({kind:'habit', id:uid(), createdAt:now(), updatedAt:now(), text:v, count:1}); $('#hText').value=''; toast('추가했습니다'); });
+$('#formReread').addEventListener('submit', async e => { e.preventDefault(); const v=$('#rText').value.trim(); if(!v) return;
+  const unit = $('#rUnit').value; ui.lastUnit[ui.subj] = unit;
+  await store.put({kind:'reread', id:uid(), createdAt:now(), updatedAt:now(), subject:ui.subj, unit, text:v, src:$('#rSrc').value.trim(), done:false});
+  $('#rText').value=''; $('#rSrc').value=''; toast('추가했습니다'); });
+document.querySelector('#tab-habit').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const id = b.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id); if(!x) return;
+  const act = b.dataset.act;
+  if (act==='plus') await store.put({...x, count:(x.count||1)+1, updatedAt:now()});
+  if (act==='minus') await store.put({...x, count:Math.max(1,(x.count||1)-1), updatedAt:now()});
+  if (act==='del'){ ui.confirm=id; renderHabit(); }
+  if (act==='del-no'){ ui.confirm=null; renderHabit(); }
+  if (act==='del-yes'){ ui.confirm=null; await store.remove(id); toast('삭제했습니다'); }
+});
+document.querySelector('#tab-habit').addEventListener('change', async e => {
+  if (e.target.dataset.act!=='toggle') return;
+  const id = e.target.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id); if(!x) return;
+  await store.put({...x, done:e.target.checked, updatedAt:now()});
+});
+
+/* ---- 복습 ---- */
+function buildDeck(){
+  const types = typesOf(ui.subj);
+  const list = viewOf('quick').filter(x => !ui.rvType || (types[x.type] ? x.type : '-') === ui.rvType);
+  // 헷갈림이 많고 기억이 적은 규칙을 앞쪽에, 같은 점수끼리는 섞기
+  const score = x => (x.miss||0)*2 - (x.ok||0) + Math.random()*1.5;
+  return list.map(x => ({id:x.id, s:score(x)})).sort((a,b)=>b.s-a.s).map(o=>o.id);
+}
+function renderReview(){
+  const base = viewOf('quick'); const types = typesOf(ui.subj);
+  const tc = {}; base.forEach(x => { if (types[x.type]) tc[x.type] = (tc[x.type]||0)+1; });
+  if (ui.rvType && !tc[ui.rvType]) ui.rvType = '';
+  $('#rvChips').innerHTML = Object.keys(tc).length > 1 ? `<button class="chip" data-t="" aria-pressed="${ui.rvType===''}">모든 유형 ${base.length}</button>` +
+    Object.keys(types).filter(k=>tc[k]).map(k => `<button class="chip" data-t="${k}" aria-pressed="${ui.rvType===k}">${k} ${types[k][0]} ${tc[k]}</button>`).join('') : '';
+  const key = ui.subj + '|' + ui.unit + '|' + ui.rvType;
+  if (!ui.review || ui.review.key !== key) ui.review = {key, deck:buildDeck(), i:0, shown:false, ok:0, miss:0};
+  const R = ui.review;
+  const x = items.find(i => i.id === R.deck[R.i]);
+  if (!R.deck.length){ $('#flash').innerHTML = `<div class="top"><span>${SUBJ_NAME[ui.subj]}</span></div><p class="empty">복습할 빠른 정리가 없습니다.</p>`; $('#rvActions').innerHTML=''; return; }
+  if (R.i >= R.deck.length || !x){
+    $('#flash').innerHTML = `<div class="top"><span>이번 복습 끝</span><span>${R.deck.length}장</span></div>
+      <p class="q">기억 ${R.ok}, 헷갈림 ${R.miss}</p><p class="hint">헷갈린 규칙은 다음 복습 때 먼저 나옵니다.</p>`;
+    $('#rvActions').innerHTML = `<button class="primary" data-rv="restart">다시 섞어서 시작</button>`; return;
+  }
+  $('#flash').innerHTML = `<div class="top"><span>${esc([unitOf(x), topicOf(x)].filter(Boolean).join(' / ') || SUBJ_NAME[ui.subj])}</span><span>${R.i+1} / ${R.deck.length}</span></div>
+    <div class="t">${codeTag(x.type)}<span>${esc(typeName(x.type) || '개념 확인')}</span></div>
+    <p class="lab">이런 문제가 나오면</p><p class="q">${esc(x.when || '(쓰는 상황 없음) 출처: ' + (x.srcs||[]).join(', '))}</p>
+    ${R.shown ? `<div class="a"><p class="lab">판단 규칙</p><p class="rule"><mark>${esc(x.rule)}</mark></p><p class="hint">${esc((x.srcs||[]).join(', '))}</p></div>` : ''}`;
+  $('#rvActions').innerHTML = R.shown
+    ? `<button data-rv="miss">헷갈렸어요</button><button class="primary" data-rv="ok">기억났어요</button>`
+    : `<button class="primary" data-rv="show">판단 규칙 보기</button><button class="text" data-rv="skip">건너뛰기</button>`;
+}
+$('#rvChips').addEventListener('click', e => { const c=e.target.closest('.chip'); if(!c) return; ui.rvType=c.dataset.t; ui.review=null; renderReview(); });
+$('#rvActions').addEventListener('click', async e => {
+  const b = e.target.closest('[data-rv]'); if(!b) return; const R = ui.review; const act = b.dataset.rv;
+  if (act==='restart'){ ui.review=null; renderReview(); return; }
+  if (act==='show'){ R.shown=true; renderReview(); return; }
+  const x = items.find(i => i.id === R.deck[R.i]);
+  R.i++; R.shown=false;
+  if ((act==='ok' || act==='miss') && x){ R[act]++; await store.put({...x, [act]:(x[act]||0)+1, lastReview:now()}); }
+  else renderReview();
+});
+
+/* ---- 유형 설명 ---- */
+function renderLegend(){
+  $('#legendHint').textContent = ui.subj === 'content'
+    ? '생물 내용학 문항에서 판단 규칙이 어느 종류인지 표시하는 기호입니다.'
+    : `${SUBJ_NAME[ui.subj]} 서술형에서 연결이 끊기는 지점별로 나눈 기호입니다.`;
+  $('#legend').innerHTML = Object.entries(typesOf(ui.subj)).map(([k,v]) => `<div class="r">${codeTag(k)}<b>${v[0]}</b>
+    <div class="desc">${v[1]}<div class="ex">예: ${v[2]}</div></div></div>`).join('') +
+    `<div class="r">${codeTag('-')}<b>개념 확인</b><div class="desc">판단 규칙 없이 개념만 묻는 문항</div></div>`;
+}
+
+/* ---- 과목·탭·단원 ---- */
+$('#subjects').addEventListener('click', e => { const b=e.target.closest('button[data-subj]'); if(!b || b.dataset.subj===ui.subj) return;
+  ui.subj=b.dataset.subj; ui.unit=''; ui.qType=''; ui.rvType=''; ui.review=null; ui.confirm=null;
+  try{ localStorage.setItem('wrongnote.subj', ui.subj); }catch(err){}
+  fillQuickForm(null); openQuick(false); fillFullForm(null); openFull(false); renderAll(); });
+$('#tabs').addEventListener('click', e => { const b=e.target.closest('button[data-tab]'); if(!b) return;
+  ui.tab=b.dataset.tab; ui.confirm=null; try{ localStorage.setItem('wrongnote.tab', ui.tab); }catch(err){}
+  if (ui.tab==='review') ui.review=null; renderAll(); });
+$('#unitFilter').addEventListener('change', e => { ui.unit = e.target.value; ui.review = null; ui.confirm = null;
+  if (!ui.editQuick) { $('#qUnit').value = ui.unit; fillTopics('#qTopics', ui.subj, ui.unit); }
+  if (!ui.editFull) { $('#fUnit').value = ui.unit; fillTopics('#fTopics', ui.subj, ui.unit); }
+  renderAll(); });
+
+/* ---- 백업 ---- */
+$('#btnExport').onclick = () => {
+  const blob = new Blob([JSON.stringify({app:'wrongnote', version:1, exportedAt:new Date().toISOString(), items}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `wrongnote_backup_${today()}.json`;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast('백업 파일을 저장했습니다');
+};
+$('#btnImport').onclick = () => $('#fileImport').click();
+$('#fileImport').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    const list = Array.isArray(data) ? data : data.items;
+    if (!Array.isArray(list)) throw new Error('형식');
+    const valid = list.filter(x => x && x.id && ['quick','full','habit','reread'].includes(x.kind));
+    await store.putMany(valid);
+    toast(`${valid.length}개 기록을 불러왔습니다 (같은 기록은 덮어씀)`);
+  }catch(err){ toast('백업 파일을 읽지 못했습니다. 이 앱에서 저장한 JSON 파일인지 확인하세요.'); }
+  e.target.value = '';
+});
+
+/* ---- 시작 ---- */
+store.init(setItems);
+fillQuickForm(null); fillFullForm(null);
+</script>
+</body>
+</html>
