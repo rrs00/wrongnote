@@ -308,6 +308,10 @@ input::placeholder,textarea::placeholder{color:var(--pencil)}
     <section class="panel" id="tab-full" hidden>
       <div class="tools">
         <input type="search" id="fSearch" placeholder="전체 양식 검색" aria-label="전체 양식 검색">
+        <select id="fSort" aria-label="정렬">
+          <option value="unit">단원 순</option>
+          <option value="new">최근 추가 순</option>
+        </select>
         <button class="primary" id="fullNew">새로 적기</button>
       </div>
       <form class="entry" id="formFull" autocomplete="off" hidden>
@@ -352,6 +356,10 @@ input::placeholder,textarea::placeholder{color:var(--pencil)}
           <input type="text" id="rSrc" placeholder="출처" aria-label="출처">
           <button type="submit" class="primary">추가</button>
         </form>
+        <div class="tools"><select id="rSort" aria-label="다시 읽을 개념 정렬">
+          <option value="unit">단원 순</option>
+          <option value="new">최근 추가 순</option>
+        </select></div>
         <div id="rereadList"></div>
       </div>
     </section>
@@ -929,18 +937,20 @@ $('#fullCancel').onclick = () => { fillFullForm(null); openFull(false); };
 function renderFull(){
   const q = $('#fSearch').value.trim().toLowerCase();
   const all = viewOf('full');
+  const grouped = $('#fSort').value === 'unit';
   const list = all.filter(x => !q || [Object.values(x).join(' '), topicOf(x)].join(' ').toLowerCase().includes(q))
-    .sort((a,b) => unitOrder(unitOf(a))-unitOrder(unitOf(b)) || (b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt);
+    .sort((a,b) => grouped ? unitOrder(unitOf(a))-unitOrder(unitOf(b)) || (b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt
+      : b.createdAt-a.createdAt);
   let html = '', cur = null;
   for (const x of list) {
     const u = unitOf(x);
-    if (u !== cur) { cur = u; html += `<h4 class="unit-h"><span>${esc(u || '단원 미지정')}</span><span class="cnt">${list.filter(y => unitOf(y) === u).length}</span></h4>`; }
+    if (grouped && u !== cur) { cur = u; html += `<h4 class="unit-h"><span>${esc(u || '단원 미지정')}</span><span class="cnt">${list.filter(y => unitOf(y) === u).length}</span></h4>`; }
     const rowsHtml = [['① 상황 요약',x.s1],['② 막힌 지점',x.s2],['③ 이미 알던 개념',x.s3],['④ 연결 고리',x.s4]]
       .filter(r=>r[1]).map(([k,v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
     html += `<article class="it fullnote" data-id="${x.id}">
       ${(x.types||[]).length ? codeTag(x.types[0]) : codeTag('-')}
       <div class="body">
-        <div class="head">${imgTitle(x, `<b>${esc(topicOf(x) || x.s1 || '주제 없음')}</b>`)}<span class="hint">${esc(x.date||'')}</span>${imgCount(x)}
+        <div class="head">${imgTitle(x, `<b>${esc(topicOf(x) || x.s1 || '주제 없음')}</b>`)}<span class="hint">${esc(x.date||'')}</span>${!grouped && u ? `<span class="hint">${esc(u)}</span>` : ''}${imgCount(x)}
           ${(x.types||[]).slice(1).map(codeTag).join('')}${x.src ? `<span class="src hint">${esc(x.src)}</span>` : ''}</div>
         <dl>${rowsHtml}<dt>⑤ 판단 규칙</dt><dd class="rule"><mark>${esc(x.s5)}</mark></dd></dl>
       </div>
@@ -961,6 +971,7 @@ $('#fullList').addEventListener('click', async e => {
   if (act==='del-yes'){ ui.confirm = null; await store.remove(id); toast('삭제했습니다'); }
 });
 $('#fSearch').addEventListener('input', renderFull);
+$('#fSort').addEventListener('change', renderFull);
 
 /* ---- 실수 습관 · 다시 읽을 개념 ---- */
 function renderHabit(){
@@ -974,7 +985,8 @@ function renderHabit(){
   $('#rereadHint').textContent = SUBJ_NAME[ui.subj] + ' · 개념 자체를 몰랐던 경우, 다시 읽으면 체크';
   const unit = ui.unit || ui.lastUnit[ui.subj] || '';
   if (document.activeElement !== $('#rUnit')) $('#rUnit').innerHTML = `<option value="">단원</option>` + unitOptions(ui.subj, unit);
-  const r = viewOf('reread').sort((a,b)=>(a.done?1:0)-(b.done?1:0) || unitOrder(unitOf(a))-unitOrder(unitOf(b)) || b.createdAt-a.createdAt);
+  const byUnit = $('#rSort').value === 'unit';
+  const r = viewOf('reread').sort((a,b)=>(a.done?1:0)-(b.done?1:0) || (byUnit ? unitOrder(unitOf(a))-unitOrder(unitOf(b)) : 0) || b.createdAt-a.createdAt);
   $('#rereadList').innerHTML = r.length ? r.map(x => `<div class="line" data-id="${x.id}">
       <label class="check txt"><input type="checkbox" data-act="toggle" ${x.done?'checked':''}><span class="${x.done?'done':''}">${esc(x.text)}</span></label>
       <span class="hint">${esc([unitOf(x), x.src].filter(Boolean).join(', '))}</span>
@@ -998,6 +1010,7 @@ document.querySelector('#tab-habit').addEventListener('click', async e => {
   if (act==='del-yes'){ ui.confirm=null; await store.remove(id); toast('삭제했습니다'); }
 });
 document.querySelector('#tab-habit').addEventListener('change', async e => {
+  if (e.target.id === 'rSort') return renderHabit();
   if (e.target.dataset.act!=='toggle') return;
   const id = e.target.closest('[data-id]').dataset.id; const x = items.find(i=>i.id===id); if(!x) return;
   await store.put({...x, done:e.target.checked, updatedAt:now()});
